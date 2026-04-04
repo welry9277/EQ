@@ -1,0 +1,7 @@
+model:
+  source_model: gpt-5.4-mini
+  regen_model: gpt-5.4-mini
+  backend: gpt
+  temperature: 0.7
+  batch_size: 10
+  max_tokens: 100
