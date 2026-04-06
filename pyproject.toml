@@ -11,6 +11,12 @@ dependencies = [
     "torch",
     "transformers",
     "pyyaml>=6.0.3",
+    "audiocraft",
+    "datasets>=4.5.0",
+    "torchaudio>=2.1.0",
+    "soundfile>=0.13.1",
+    "librosa>=0.11.0",
+    "torchvision>=0.16.0",
 ]
 
 [build-system]
@@ -19,3 +25,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["uiq_generation"]
+
+[tool.uv.sources]
+audiocraft = { git = "https://github.com/facebookresearch/audiocraft.git" }
