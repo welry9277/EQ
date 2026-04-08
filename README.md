@@ -1,140 +1,254 @@
-# UIQ (User Intent Query) Generation Toolkit
+# EQ (Extended Query) Generation Toolkit
 
-Standalone toolkit for generating User Intent Queries from audio captions. Evaluated and structured as described in **Omni-Embed-Audio (ACL 2026)**.
+This repository generates EQ (Extended Query) data for audio retrieval using `gpt-5.4-mini`.
+
+EQ expands one matched AudioCaps target into 6 query styles so that the same audio can be expressed in multiple retrieval forms.
+
+## Overview
+
+EQ is built from two inputs:
+
+1. `vggsound_to_audiocaps_top1.json`
+2. AudioCaps caption CSV
+
+For each entry in `vggsound_to_audiocaps_top1.json`:
+
+- treat the matched AudioCaps `audio_id` as the target
+- use `audio_id` as the authoritative key for caption retrieval
+- generate 6 query variants
+
+The first 5 query types use only the top-1 matched caption.
+
+- `key_phrase`
+- `statement`
+- `question`
+- `command`
+- `indirect`
+
+The last type uses the full caption set for the same `audio_id`.
+
+- `full_caption`
 
 ## Query Types
 
-This tool generates 5 types of queries (and alternatively, 5 hard-negative variants) using `gpt-5.4-mini`:
-- **Keyword**
-- **Imperative**
-- **Polite**
-- **Question**
-- **Paraphrase**
+### Key Phrase
+
+Core words or a shortened phrase with omitted sentence elements.
+
+Example:
+
+```text
+Dog barking in distance.
+```
+
+### Statement
+
+Objective factual description without emotion or explicit user intent.
+
+Example:
+
+```text
+Person is walking on crunchy dry leaves in a quiet park.
+```
+
+### Question
+
+Direct query asking whether a sound or event is present.
+
+Example:
+
+```text
+Is there any dog barking sound?
+```
+
+### Command
+
+Direct instruction to retrieve a matching sound.
+
+Example:
+
+```text
+Find a high-pitched metallic clinking sound.
+```
+
+### Indirect
+
+Polite or indirect request such as `Please`, `Could you`, or `I would appreciate it if`.
+
+Examples:
+
+```text
+I would appreciate it if you could find a sound effect for a door creaking slowly.
+Could you please provide a list of audio files that match the crashing waves in this clip?
+```
+
+### Full-Caption
+
+One representative query created by summarizing all captions for the same `audio_id`.
+
+This type is intended to preserve the full information from the 5 AudioCaps captions.
+
+Note:
+
+- `full_caption` performance is good
+- the other query types are relatively weaker
 
 ## Setup
 
-We use `uv` for seamless package management.
+Install dependencies with `uv`.
 
 ```bash
 uv sync
 ```
 
-Create a `.env` file at the project root with your OpenAI API key:
+Create a `.env` file at the project root:
+
 ```env
 OPENAI_API_KEY=your_api_key_here
 ```
 
-## Data Preparation
+The default model configuration is stored in [config.yaml](/home/essibae5/UIQ/config.yaml).
 
-Before running the query generator, you can download and prepare the original captions into the `input/` folder automatically using the `prepare_data.py` script:
-
-```bash
-./scripts/prepare_data.py --dataset all
-```
-*(Note for MeCAT: Since it may not have a simple single download URL, the folder is created for you. You need to manually move its JSON metadata to `input/mecat/metadata/`)*
-
-## Quick Start (Generating queries)
-
-The CLI pipeline has been simplified to run through `./scripts/makeuiq.py`. 
-
-### AudioCaps
-
-```bash
-./scripts/makeuiq.py \
-    --dataset audiocaps \
-    --captions-csv input/audiocaps/train.csv \
-    --output-dir results/uiq/audiocaps \
-    --num-queries 50 
+```yaml
+model:
+  source_model: gpt-5.4-mini
+  regen_model: gpt-5.4-mini
+  backend: gpt
+  temperature: 0.7
+  batch_size: 10
+  max_tokens: 100
 ```
 
-*(Omit `--num-queries` to run on the entire dataset)*
+## Step 1. Build Top-1 Mapping
 
-### Clotho
+Use [`scripts/map_vggsound_to_audiocaps_top1.py`](/home/essibae5/UIQ/scripts/map_vggsound_to_audiocaps_top1.py) to match each VGGSound category to the single most similar AudioCaps caption.
 
-```bash
-./scripts/makeuiq.py \
-    --dataset clotho \
-    --captions-csv input/clotho/clotho_captions_development.csv \
-    --output-dir results/uiq/clotho
-```
+Required inputs:
 
-### MeCAT
+- `--captions-csv`
+- `--categories-json`
+- `--output-json`
 
-```bash
-./scripts/makeuiq.py \
-    --dataset mecat \
-    --meta-dir input/mecat/metadata \
-    --output-dir results/uiq/mecat
-```
-
-### Negative Queries
-
-Negative queries require a compiled hard negatives JSONL file. Providing this file will automatically generate the 5 negative query categories corresponding to your base types.
-
-```bash
-./scripts/makeuiq.py \
-    --dataset audiocaps \
-    --captions-csv input/audiocaps/train.csv \
-    --output-dir results/uiq/audiocaps_negative \
-    --hard-neg-jsonl results/hard_negatives/audiocaps/stage2_filtered_negatives.jsonl
-```
-
-## Semantic Mapping: AudioCaps to VGGSound
-
-This repository also includes a prototype-based semantic assignment pipeline using `BAAI/bge-large-en-v1.5`. It builds one embedding prototype per VGGSound category from prompt templates, then assigns each AudioCaps caption to exactly one category by top-1 cosine similarity.
-
-Input files should be JSON lists of strings:
-
-```json
-["dog barking", "rain falling", "people cheering"]
-```
-
-```json
-["A dog barking loudly in the distance", "Heavy rain falls on a roof"]
-```
-
-Run:
-
-```bash
-./scripts/map_audiocaps_to_vggsound.py \
-    --categories-json input/vggsound_categories.json \
-    --captions-json input/audiocaps_captions.json \
-    --output-json results/semantic_mapping/audiocaps_to_vggsound.json
-```
-
-The output contains one result per caption with:
-- `caption`
-- `assigned_category`
-- `similarity`
-- `top_k`
-
-If you want to reuse [`load_audiocaps()`](/home/essibae5/UIQ/scripts/makeuiq.py#L18) directly and map every caption in the CSV, use:
-
-```bash
-./scripts/map_audiocaps_csv_to_vggsound.py \
-    --captions-csv input/audiocaps/test.csv \
-    --categories-json input/vggsound_categories.json \
-    --output-json results/semantic_mapping/audiocaps_test_all_captions.json
-```
-
-This version expands `original_captions` so each caption gets its own assignment result, while keeping the parent `audio_id`.
-
-If you want the reverse direction, meaning:
-- build embeddings for VGGSound categories first
-- then, for each category, find the single best AudioCaps caption
-
-use:
+Example:
 
 ```bash
 ./scripts/map_vggsound_to_audiocaps_top1.py \
     --captions-csv input/audiocaps/test.csv \
     --categories-json input/vggsound_categories.json \
-    --output-json results/semantic_mapping/vggsound_to_audiocaps_top1.json
+    --output-json input/vggsound_to_audiocaps_top1.json
 ```
 
-This returns one result per category with:
+The output JSON contains one entry per VGGSound category with fields such as:
+
 - `category`
 - `matched_caption`
 - `audio_id`
 - `similarity`
 - `top_k_captions`
+
+## Step 2. Generate EQ
+
+Use [`scripts/makeeq.py`](/home/essibae5/UIQ/scripts/makeeq.py) to generate the 6 EQ files.
+
+Example:
+
+```bash
+./scripts/makeeq.py \
+    --mapping-json input/vggsound_to_audiocaps_top1.json \
+    --captions-csv input/audiocaps/test.csv \
+    --output-dir results/eq/audiocaps_test
+```
+
+If the mapping file contains 310 entries and validation passes, each query type will produce 310 outputs.
+
+- `eq_key_phrase.jsonl`
+- `eq_statement.jsonl`
+- `eq_question.jsonl`
+- `eq_command.jsonl`
+- `eq_indirect.jsonl`
+- `eq_full_caption.jsonl`
+
+Total outputs:
+
+```text
+310 x 6 = 1860
+```
+
+## Generation Rules
+
+### For `key_phrase`, `statement`, `question`, `command`, `indirect`
+
+- use only the top-1 matched caption
+- `original_captions` must contain exactly one caption
+
+### For `full_caption`
+
+- retrieve all captions for the same AudioCaps `audio_id`
+- generate one representative query summarizing the full caption set
+- `original_captions` must contain all captions for that `audio_id`
+
+## Output Schema
+
+Each line in the output JSONL files follows this structure:
+
+```json
+{
+  "audio_id": "...",
+  "dataset": "...",
+  "dataset_slug": "...",
+  "query_type": "...",
+  "generated_query": "...",
+  "original_captions": ["..."],
+  "vgg": {
+    "category": "...",
+    "audio_id": "...",
+    "similarity": 0.0
+  },
+  "metadata": {},
+  "source_model": "gpt-5.4-mini",
+  "regen_model": "gpt-5.4-mini"
+}
+```
+
+Rules:
+
+- `generated_query` must contain only the final query text
+- no explanations or extra formatting
+- outputs must stay faithful to the source caption or caption set
+
+## Validation
+
+The EQ pipeline writes `eq_validation.log` and validates the following:
+
+- each mapping entry must produce 6 outputs
+- missing caption-set cases must be logged clearly
+- `audio_id` is the authoritative key for caption retrieval
+- top-1 caption must belong to the retrieved caption set
+- `full_caption` must retain the full caption set
+- all other types must retain exactly one caption
+
+If validation fails, the script stops and reports the error in the log.
+
+## Code Flow
+
+Main entrypoint:
+
+- [`scripts/makeeq.py`](/home/essibae5/UIQ/scripts/makeeq.py)
+
+Important components:
+
+- [`scripts/makeuiq.py`](/home/essibae5/UIQ/scripts/makeuiq.py): loads AudioCaps grouped by `audio_id`
+- [`uiq_generation/query_types.py`](/home/essibae5/UIQ/uiq_generation/query_types.py): EQ query type definitions and output schema
+- [`uiq_generation/generators/prompts.py`](/home/essibae5/UIQ/uiq_generation/generators/prompts.py): prompt templates for each query type
+- [`uiq_generation/generators/gpt_generator.py`](/home/essibae5/UIQ/uiq_generation/generators/gpt_generator.py): GPT generation backend
+
+Execution flow:
+
+1. Load AudioCaps CSV and group captions by `audio_id`.
+2. Load `vggsound_to_audiocaps_top1.json`.
+3. Validate each mapping entry using `audio_id`.
+4. Extract the top-1 caption for the first 5 query types.
+5. Retrieve all 5 captions for `full_caption`.
+6. Generate 6 EQ variants with `gpt-5.4-mini`.
+7. Save one JSONL file per query type.
+8. Run final validation and write `eq_validation.log`.
