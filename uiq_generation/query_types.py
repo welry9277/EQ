@@ -8,6 +8,13 @@ class QueryType(Enum):
     POLITE = "polite"
     QUESTION = "question"
     PARAPHRASE = "paraphrase"
+
+    # EQ variants
+    KEY_PHRASE = "key_phrase"
+    STATEMENT = "statement"
+    COMMAND = "command"
+    INDIRECT = "indirect"
+    FULL_CAPTION = "full_caption"
     
     # Negative variants
     KEYWORD_NEGATIVE = "keyword_negative"
@@ -31,12 +38,13 @@ class QueryResult:
     query_type: QueryType
     generated_query: str
     original_captions: list[str]
+    vgg: Optional[dict] = None
     metadata: Optional[dict] = field(default_factory=dict)
     source_model: str = "gpt-5.1"
     regen_model: str = "gpt-5.1"
 
     def to_dict(self) -> dict:
-        return {
+        result = {
             "audio_id": self.audio_id,
             "dataset": self.dataset,
             "dataset_slug": self.dataset_slug,
@@ -47,3 +55,6 @@ class QueryResult:
             "source_model": self.source_model,
             "regen_model": self.regen_model,
         }
+        if self.vgg is not None:
+            result["vgg"] = self.vgg
+        return result

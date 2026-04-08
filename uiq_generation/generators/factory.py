@@ -10,7 +10,11 @@ from typing import Any, Dict, Optional
 
 from uiq_generation.generators.base import BaseUIQGenerator
 from uiq_generation.generators.gpt_generator import GPTUIQGenerator
-from uiq_generation.generators.llama_generator import LlamaUIQGenerator
+
+try:
+    from uiq_generation.generators.llama_generator import LlamaUIQGenerator
+except ModuleNotFoundError:
+    LlamaUIQGenerator = None
 
 
 def UIQGenerator(
@@ -54,6 +58,10 @@ def UIQGenerator(
     if backend == "gpt":
         return GPTUIQGenerator(**kwargs)
     elif backend == "llama":
+        if LlamaUIQGenerator is None:
+            raise ModuleNotFoundError(
+                "llama backend requires optional dependencies. Install torch and transformers."
+            )
         return LlamaUIQGenerator(**kwargs)
     else:
         raise ValueError(f"Unknown backend: {backend}. Choose from: gpt, llama")

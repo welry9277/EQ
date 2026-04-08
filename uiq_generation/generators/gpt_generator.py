@@ -11,7 +11,7 @@ from typing import Optional
 
 from uiq_generation.query_types import QueryType
 from uiq_generation.generators.base import BaseUIQGenerator
-from uiq_generation.generators.prompts import format_prompt, GPT_SYSTEM_PROMPT
+from uiq_generation.generators.prompts import format_prompt, get_system_prompt
 
 
 class GPTUIQGenerator(BaseUIQGenerator):
@@ -71,7 +71,7 @@ class GPTUIQGenerator(BaseUIQGenerator):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": GPT_SYSTEM_PROMPT},
+                {"role": "system", "content": get_system_prompt(query_type, backend="gpt")},
                 {"role": "user", "content": prompt},
             ],
             max_completion_tokens=self.max_tokens,

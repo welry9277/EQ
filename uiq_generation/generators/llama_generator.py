@@ -12,7 +12,7 @@ import torch
 
 from uiq_generation.query_types import QueryType
 from uiq_generation.generators.base import BaseUIQGenerator
-from uiq_generation.generators.prompts import format_prompt, LLAMA_SYSTEM_PROMPT
+from uiq_generation.generators.prompts import format_prompt, get_system_prompt
 
 
 class LlamaUIQGenerator(BaseUIQGenerator):
@@ -83,7 +83,7 @@ class LlamaUIQGenerator(BaseUIQGenerator):
         prompt = format_prompt(query_type, caption, hard_negative_caption)
 
         # Format for LLaMA chat
-        full_prompt = LLAMA_SYSTEM_PROMPT + prompt + " [/INST]"
+        full_prompt = get_system_prompt(query_type, backend="llama") + prompt + " [/INST]"
 
         outputs = self.pipeline(
             full_prompt,
@@ -129,7 +129,7 @@ class LlamaUIQGenerator(BaseUIQGenerator):
         prompts = []
         for caption, hard_neg in zip(captions, hard_negative_captions):
             prompt = format_prompt(query_type, caption, hard_neg)
-            full_prompt = LLAMA_SYSTEM_PROMPT + prompt + " [/INST]"
+            full_prompt = get_system_prompt(query_type, backend="llama") + prompt + " [/INST]"
             prompts.append(full_prompt)
 
         # Batch generate

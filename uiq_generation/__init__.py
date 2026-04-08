@@ -32,13 +32,21 @@ from uiq_generation.generators import (
     LlamaUIQGenerator,
     UIQGenerator,
 )
-from uiq_generation.semantic_mapping import (
-    DEFAULT_MODEL_NAME,
-    DEFAULT_TEMPLATES,
-    SemanticMapper,
-    assign_captions,
-    build_category_prototypes,
-)
+
+try:
+    from uiq_generation.semantic_mapping import (
+        DEFAULT_MODEL_NAME,
+        DEFAULT_TEMPLATES,
+        SemanticMapper,
+        assign_captions,
+        build_category_prototypes,
+    )
+except ModuleNotFoundError:
+    DEFAULT_MODEL_NAME = None
+    DEFAULT_TEMPLATES = None
+    SemanticMapper = None
+    assign_captions = None
+    build_category_prototypes = None
 
 __all__ = [
     "QueryType",
