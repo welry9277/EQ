@@ -32,6 +32,13 @@ from uiq_generation.generators import (
     LlamaUIQGenerator,
     UIQGenerator,
 )
+from uiq_generation.semantic_mapping import (
+    DEFAULT_MODEL_NAME,
+    DEFAULT_TEMPLATES,
+    SemanticMapper,
+    assign_captions,
+    build_category_prototypes,
+)
 
 __all__ = [
     "QueryType",
@@ -40,4 +47,9 @@ __all__ = [
     "GPTUIQGenerator",
     "LlamaUIQGenerator",
     "UIQGenerator",
+    "DEFAULT_MODEL_NAME",
+    "DEFAULT_TEMPLATES",
+    "SemanticMapper",
+    "build_category_prototypes",
+    "assign_captions",
 ]

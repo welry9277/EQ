@@ -78,3 +78,63 @@ Negative queries require a compiled hard negatives JSONL file. Providing this fi
     --output-dir results/uiq/audiocaps_negative \
     --hard-neg-jsonl results/hard_negatives/audiocaps/stage2_filtered_negatives.jsonl
 ```
+
+## Semantic Mapping: AudioCaps to VGGSound
+
+This repository also includes a prototype-based semantic assignment pipeline using `BAAI/bge-large-en-v1.5`. It builds one embedding prototype per VGGSound category from prompt templates, then assigns each AudioCaps caption to exactly one category by top-1 cosine similarity.
+
+Input files should be JSON lists of strings:
+
+```json
+["dog barking", "rain falling", "people cheering"]
+```
+
+```json
+["A dog barking loudly in the distance", "Heavy rain falls on a roof"]
+```
+
+Run:
+
+```bash
+./scripts/map_audiocaps_to_vggsound.py \
+    --categories-json input/vggsound_categories.json \
+    --captions-json input/audiocaps_captions.json \
+    --output-json results/semantic_mapping/audiocaps_to_vggsound.json
+```
+
+The output contains one result per caption with:
+- `caption`
+- `assigned_category`
+- `similarity`
+- `top_k`
+
+If you want to reuse [`load_audiocaps()`](/home/essibae5/UIQ/scripts/makeuiq.py#L18) directly and map every caption in the CSV, use:
+
+```bash
+./scripts/map_audiocaps_csv_to_vggsound.py \
+    --captions-csv input/audiocaps/test.csv \
+    --categories-json input/vggsound_categories.json \
+    --output-json results/semantic_mapping/audiocaps_test_all_captions.json
+```
+
+This version expands `original_captions` so each caption gets its own assignment result, while keeping the parent `audio_id`.
+
+If you want the reverse direction, meaning:
+- build embeddings for VGGSound categories first
+- then, for each category, find the single best AudioCaps caption
+
+use:
+
+```bash
+./scripts/map_vggsound_to_audiocaps_top1.py \
+    --captions-csv input/audiocaps/test.csv \
+    --categories-json input/vggsound_categories.json \
+    --output-json results/semantic_mapping/vggsound_to_audiocaps_top1.json
+```
+
+This returns one result per category with:
+- `category`
+- `matched_caption`
+- `audio_id`
+- `similarity`
+- `top_k_captions`
