@@ -1,0 +1,202 @@
+[
+  {
+    "category": "people marching",
+    "matched_caption": "people are speaking followed by crowd noise",
+    "audio_id": "wNiYSYJXssA_460",
+    "dataset": "audiocaps",
+    "dataset_slug": "audiocaps_test",
+    "metadata": {
+      "split": "test",
+      "youtube_id": "wNiYSYJXssA",
+      "start_time": 460.0
+    },
+    "similarity": 0.7775845527648926,
+    "top_k_captions": [
+      {
+        "caption": "people are speaking followed by crowd noise",
+        "audio_id": "wNiYSYJXssA_460",
+        "similarity": 0.7775845527648926
+      },
+      {
+        "caption": "a crowd of people applauding",
+        "audio_id": "RNBoH2LHQEM_370",
+        "similarity": 0.7396073937416077
+      },
+      {
+        "caption": "human voices followed by the movement of a vehicle",
+        "audio_id": "e4ph6bIC5zc_170",
+        "similarity": 0.7333095669746399
+      },
+      {
+        "caption": "a crowd of people cheering and applauding",
+        "audio_id": "XrJcmftCY04_180",
+        "similarity": 0.7309054136276245
+      },
+      {
+        "caption": "a crowd applauds for a while",
+        "audio_id": "5eSRL3PRHzo_340",
+        "similarity": 0.728906512260437
+      }
+    ]
+  },
+  {
+    "category": "waterfall burbling",
+    "matched_caption": "trickling water sounds with breathing in the background",
+    "audio_id": "1HCuBnPLMqQ_380",
+    "dataset": "audiocaps",
+    "dataset_slug": "audiocaps_test",
+    "metadata": {
+      "split": "test",
+      "youtube_id": "1HCuBnPLMqQ",
+      "start_time": 380.0
+    },
+    "similarity": 0.819521427154541,
+    "top_k_captions": [
+      {
+        "caption": "trickling water sounds with breathing in the background",
+        "audio_id": "1HCuBnPLMqQ_380",
+        "similarity": 0.819521427154541
+      },
+      {
+        "caption": "water running with distant speech in the background",
+        "audio_id": "PWjEfOkb6ro_21",
+        "similarity": 0.8116800785064697
+      },
+      {
+        "caption": "a stream burbles while a man speaks",
+        "audio_id": "n74IYuCe_ms_110",
+        "similarity": 0.8110536336898804
+      },
+      {
+        "caption": "water flows loudly",
+        "audio_id": "ROootH-mtEI_130",
+        "similarity": 0.8101937770843506
+      },
+      {
+        "caption": "water running together with distant singing and brief clanking",
+        "audio_id": "3qTL7QRk-tg_30",
+        "similarity": 0.8032355308532715
+      }
+    ]
+  },
+  {
+    "category": "playing tennis",
+    "matched_caption": "wind is mixed with a musical tone",
+    "audio_id": "gbi6MxPf3hA_30",
+    "dataset": "audiocaps",
+    "dataset_slug": "audiocaps_test",
+    "metadata": {
+      "split": "test",
+      "youtube_id": "gbi6MxPf3hA",
+      "start_time": 30.0
+    },
+    "similarity": 0.6745525002479553,
+    "top_k_captions": [
+      {
+        "caption": "wind is mixed with a musical tone",
+        "audio_id": "gbi6MxPf3hA_30",
+        "similarity": 0.6745525002479553
+      },
+      {
+        "caption": "some rowing sounds in water with light wind",
+        "audio_id": "ek9Fsmm3xqk_260",
+        "similarity": 0.6716689467430115
+      },
+      {
+        "caption": "a tick-tock sound playing at the same rhythm with piano notes",
+        "audio_id": "TwR8BA6buMI_30",
+        "similarity": 0.6709318161010742
+      },
+      {
+        "caption": "a sustained drilling noise as music plays in the background",
+        "audio_id": "FeHndzYAUkg_170",
+        "similarity": 0.6687866449356079
+      },
+      {
+        "caption": "slapping noises while a person breathes heavily",
+        "audio_id": "UXGzbBGbqAA_30",
+        "similarity": 0.665928304195404
+      }
+    ]
+  },
+  {
+    "category": "people belly laughing",
+    "matched_caption": "people are laughing",
+    "audio_id": "fK4QBQZ6i7w_290",
+    "dataset": "audiocaps",
+    "dataset_slug": "audiocaps_test",
+    "metadata": {
+      "split": "test",
+      "youtube_id": "fK4QBQZ6i7w",
+      "start_time": 290.0
+    },
+    "similarity": 0.8883206844329834,
+    "top_k_captions": [
+      {
+        "caption": "people are laughing",
+        "audio_id": "fK4QBQZ6i7w_290",
+        "similarity": 0.8883206844329834
+      },
+      {
+        "caption": "people are laughing and chuckling",
+        "audio_id": "fK4QBQZ6i7w_290",
+        "similarity": 0.8867059350013733
+      },
+      {
+        "caption": "multiple people laughing",
+        "audio_id": "fK4QBQZ6i7w_290",
+        "similarity": 0.8863712549209595
+      },
+      {
+        "caption": "several people laughing followed by a popping farting sound",
+        "audio_id": "_w2pA1VeB40_70",
+        "similarity": 0.8668333292007446
+      },
+      {
+        "caption": "several people laughing continuously with brief clanking and speech",
+        "audio_id": "riM7b5bJ9KQ_60",
+        "similarity": 0.8596100211143494
+      }
+    ]
+  },
+  {
+    "category": "car engine starting",
+    "matched_caption": "an engine of a vehicle is starting",
+    "audio_id": "350OCezayrk_30",
+    "dataset": "audiocaps",
+    "dataset_slug": "audiocaps_test",
+    "metadata": {
+      "split": "test",
+      "youtube_id": "350OCezayrk",
+      "start_time": 30.0
+    },
+    "similarity": 0.897000789642334,
+    "top_k_captions": [
+      {
+        "caption": "an engine of a vehicle is starting",
+        "audio_id": "350OCezayrk_30",
+        "similarity": 0.897000789642334
+      },
+      {
+        "caption": "a motor vehicle engine is starting and accelerating",
+        "audio_id": "oiIi6H83Y38_0",
+        "similarity": 0.8784987330436707
+      },
+      {
+        "caption": "a car engine clicks and whines as it tries to start",
+        "audio_id": "4KObP7cREWw_40",
+        "similarity": 0.8720340728759766
+      },
+      {
+        "caption": "an engine starting and running",
+        "audio_id": "350OCezayrk_30",
+        "similarity": 0.8697222471237183
+      },
+      {
+        "caption": "an engine being started repeatedly",
+        "audio_id": "TOaQMYc79Mw_40",
+        "similarity": 0.8565412759780884
+      }
+    ]
+  }
+]
