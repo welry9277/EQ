@@ -9,8 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.makeuiq import load_audiocaps
-from uiq_generation.semantic_mapping import DEFAULT_MODEL_NAME, SemanticMapper, load_json_list, save_assignments
+from eq_generation import DEFAULT_MODEL_NAME, SemanticMapper, load_audiocaps, load_json_list, save_assignments
 
 
 def main() -> None:
