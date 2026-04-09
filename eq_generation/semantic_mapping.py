@@ -1,11 +1,5 @@
 """
 Semantic mapping from free-form audio captions to fixed label prototypes.
-
-This module implements a prototype-based assignment pipeline:
-1. Build one embedding prototype per VGGSound category from prompt templates
-2. Encode AudioCaps captions into the same embedding space
-3. Compute cosine similarity with normalized embeddings
-4. Assign each caption to the top-1 category
 """
 
 from __future__ import annotations
@@ -72,7 +66,7 @@ class SemanticMapper:
                 max_length=self.max_length,
                 return_tensors="pt",
             )
-            encoded = {k: v.to(self.device) for k, v in encoded.items()}
+            encoded = {key: value.to(self.device) for key, value in encoded.items()}
             outputs = self.model(**encoded)
             pooled = _mean_pool(outputs.last_hidden_state, encoded["attention_mask"])
             normalized = F.normalize(pooled, p=2, dim=1)
@@ -114,7 +108,6 @@ class SemanticMapper:
 
         caption_embeddings = self.encode_texts(captions)
         similarities = caption_embeddings @ prototype_embeddings.T
-
         effective_top_k = min(top_k, len(categories))
         topk_indices = np.argsort(-similarities, axis=1)[:, :effective_top_k]
 

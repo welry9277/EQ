@@ -12,8 +12,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.makeuiq import load_audiocaps, load_config
-from uiq_generation import QueryResult, QueryType, UIQGenerator
+from eq_generation import EQGenerator, QueryResult, QueryType, load_audiocaps, load_config
 
 
 EQ_QUERY_TYPES = [
@@ -282,7 +281,7 @@ def main() -> None:
         log_path = write_validation_log(output_dir, log_lines)
         raise SystemExit(f"See validation log: {log_path}")
 
-    generator = UIQGenerator(
+    generator = EQGenerator(
         backend=backend,
         model=source_model,
         batch_size=batch_size,
