@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+import os
+
+from openai import OpenAI
+
+from eq_generation.generators.base import BaseEQGenerator
+from eq_generation.generators.prompts import format_prompt, get_system_prompt
+from eq_generation.query_types import QueryType
+
+
+class GPTEQGenerator(BaseEQGenerator):
+    def __init__(
+        self,
+        model: str = "gpt-5.4-mini",
+        api_key: str | None = None,
+        batch_size: int = 10,
+        max_tokens: int = 100,
+        temperature: float = 0.7,
+    ) -> None:
+        super().__init__(batch_size, max_tokens, temperature)
+        self.model = model
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self._client: OpenAI | None = None
+
+    @property
+    def client(self) -> OpenAI:
+        if self._client is None:
+            self._client = OpenAI(api_key=self.api_key)
+        return self._client
+
+    def _generate_single(
+        self,
+        caption: str,
+        query_type: QueryType,
+        hard_negative_caption: str | None = None,
+    ) -> str:
+        del hard_negative_caption
+        prompt = format_prompt(query_type, caption)
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": get_system_prompt(query_type, backend="gpt")},
+                {"role": "user", "content": prompt},
+            ],
+            max_completion_tokens=self.max_tokens,
+            temperature=self.temperature,
+            n=1,
+        )
+        return response.choices[0].message.content.strip()

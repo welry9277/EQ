@@ -1,27 +1,25 @@
-from enum import Enum
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Optional
 
+
 class QueryType(Enum):
-    KEYWORD = "keyword"
-    IMPERATIVE = "imperative"
-    POLITE = "polite"
+    KEY_PHRASE = "key_phrase"
+    STATEMENT = "statement"
     QUESTION = "question"
-    PARAPHRASE = "paraphrase"
-    
-    # Negative variants
-    KEYWORD_NEGATIVE = "keyword_negative"
-    IMPERATIVE_NEGATIVE = "imperative_negative"
-    POLITE_NEGATIVE = "polite_negative"
-    QUESTION_NEGATIVE = "question_negative"
-    PARAPHRASE_NEGATIVE = "paraphrase_negative"
+    COMMAND = "command"
+    INDIRECT = "indirect"
+    FULL_CAPTION = "full_caption"
 
     @classmethod
-    def from_string(cls, value: str):
+    def from_string(cls, value: str) -> "QueryType":
         for member in cls:
             if member.value == value.lower():
                 return member
         raise ValueError(f"Unknown QueryType: {value}")
+
 
 @dataclass
 class QueryResult:
@@ -31,12 +29,13 @@ class QueryResult:
     query_type: QueryType
     generated_query: str
     original_captions: list[str]
+    vgg: Optional[dict] = None
     metadata: Optional[dict] = field(default_factory=dict)
-    source_model: str = "gpt-5.1"
-    regen_model: str = "gpt-5.1"
+    source_model: str = "gpt-5.4-mini"
+    regen_model: str = "gpt-5.4-mini"
 
     def to_dict(self) -> dict:
-        return {
+        result = {
             "audio_id": self.audio_id,
             "dataset": self.dataset,
             "dataset_slug": self.dataset_slug,
@@ -47,3 +46,6 @@ class QueryResult:
             "source_model": self.source_model,
             "regen_model": self.regen_model,
         }
+        if self.vgg is not None:
+            result["vgg"] = self.vgg
+        return result

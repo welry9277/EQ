@@ -206,7 +206,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# UIQ
-/input
-/results
-/hf_cache
+# EQ pipeline data
+input/
+result/
+
+# Codex config
+.codex
