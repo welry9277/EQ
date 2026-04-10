@@ -24,7 +24,7 @@ def download_file(url: str, dest: Path) -> None:
         print(f"❌ Failed to download {dest.name}: {e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Download and prepare dataset capsules for UIQ Generation")
+    parser = argparse.ArgumentParser(description="Download and prepare dataset metadata for EQ generation")
     parser.add_argument("--dataset", required=True, choices=["audiocaps", "clotho", "mecat", "all"], 
                         help="Dataset to prepare (downloads to input/ directory)")
     args = parser.parse_args()
