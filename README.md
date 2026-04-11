@@ -1,25 +1,27 @@
 # EQ Generation Pipeline
 
-LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval.
-
-This repository is now organized around the EQ workflow only:
-
-- build a top-1 mapping from VGGSound categories to AudioCaps captions
-- generate six EQ query variants per matched target
-- validate and save the outputs as JSONL
+LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval from an **AudioCaps-style caption CSV** (grouped by clip). Every query type is prompted with the **full caption set** per clip; outputs are validated and saved as JSONL.
 
 ## Installation
 
 Requirements:
 
 - Python `>=3.9`
-- `uv`
+- [uv](https://docs.astral.sh/uv/)
 - OpenAI API key for generation
 
-Install dependencies:
+Clone and install:
 
 ```bash
-uv sync
+git clone <your-fork-or-upstream-url>
+cd UIQ
+uv sync --frozen
+```
+
+To use the Hugging Face helper script below, also install the optional `datasets` extra:
+
+```bash
+uv sync --frozen --extra hf
 ```
 
 Create a `.env` file in the project root:
@@ -28,7 +30,7 @@ Create a `.env` file in the project root:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-Default model settings live in [`config.yaml`](/home/essibae5/UIQ/config.yaml):
+Default model settings live in [`config.yaml`](config.yaml):
 
 ```yaml
 model:
@@ -42,25 +44,52 @@ model:
 
 ## Data Preparation
 
-Use [`scripts/prepare_data.py`](/home/essibae5/UIQ/scripts/prepare_data.py) to create input directories and download supported metadata:
+Use [`scripts/prepare_data.py`](scripts/prepare_data.py) to create input directories and download supported metadata:
 
+<데이터 다운로드 audiocaps>
 ```bash
 ./scripts/prepare_data.py --dataset audiocaps
-./scripts/prepare_data.py --dataset clotho
-./scripts/prepare_data.py --dataset all
 ```
-
+<데이터 다운로드 clotho>
+https://zenodo.org/records/3490684
+여기서 evaluation으로 끝나는 데이터 3개 다운 받으면 됨 (audio가 다운 개오래걸림)
 Behavior:
 
-- `audiocaps`: downloads `input/audiocaps/train.csv`
-- `clotho`: downloads `input/clotho/clotho_captions_development.csv`
+- `audiocaps`: downloads official `train.csv`, `val.csv`, and `test.csv` into `input/audiocaps/` from [cdjkim/audiocaps](https://github.com/cdjkim/audiocaps/tree/master/dataset)
 - `mecat`: creates `input/mecat/metadata/` for manual placement
 
-If you want a different AudioCaps split such as `test.csv`, place it manually and pass that path to the scripts below.
+### AudioCaps via Hugging Face (`datasets`)
+
+For **official** train/val/test caption CSVs from the paper repo, use `prepare_data.py --dataset audiocaps` (no `datasets` install required).
+
+The snippet below is **[Hugging Face Hub](https://huggingface.co/datasets)** + the [`datasets`](https://huggingface.co/docs/datasets) library. The repo id **`d0rj/audiocaps`** is a mirror of **AudioCaps**, not Clotho. (Clotho is a different dataset; use `prepare_data.py --dataset clotho` or another Hub id for Clotho.)
+
+After `uv sync --extra hf`, export a split to the same CSV columns `makeeq` expects (`youtube_id`, `start_time`, `caption`):
+
+```bash
+./scripts/download_audiocaps_hf.py --split test --output input/audiocaps/test.csv
+```
+
+Splits on the Hub are named `train`, `validation`, and `test`.
+
+### One row per clip (merged captions)
+
+Official CSVs have several caption lines per `(youtube_id, start_time)`. To collapse them into a single row (first `audiocap_id`, captions joined with ` | ` by default):
+
+```bash
+# Defaults: input/audiocaps/test.csv -> input/audiocaps/test_merged.csv
+./scripts/merge_audiocaps_captions.py
+
+./scripts/merge_audiocaps_captions.py \
+  --input input/audiocaps/val.csv \
+  --output input/audiocaps/val_merged.csv
+```
+
+Use `--separator` to change the join string. Note: `makeeq` already groups by clip when reading multi-row CSVs; merging is for tools that need one row per clip.
 
 ## EQ Query Types
 
-The pipeline generates:
+The pipeline generates six variants per clip:
 
 - `key_phrase`
 - `statement`
@@ -69,43 +98,24 @@ The pipeline generates:
 - `indirect`
 - `full_caption`
 
-The first five use the matched top-1 caption. `full_caption` uses the full AudioCaps caption set for the same `audio_id`.
+All types see the **full per-clip caption list** in the prompt; `original_captions` in JSONL is that full list for every type.
 
-## Step 1. Build Top-1 Mapping
+## Generate EQ
 
-Use [`scripts/map_vggsound_to_audiocaps_top1.py`](/home/essibae5/UIQ/scripts/map_vggsound_to_audiocaps_top1.py):
-
-```bash
-./scripts/map_vggsound_to_audiocaps_top1.py \
-  --captions-csv input/audiocaps/test.csv \
-  --categories-json input/vggsound_categories.json \
-  --output-json input/vggsound_to_audiocaps_top1.json
-```
-
-Expected mapping fields:
-
-- `category`
-- `matched_caption`
-- `audio_id`
-- `similarity`
-- `top_k_captions`
-
-## Step 2. Generate EQ
-
-Use [`scripts/makeeq.py`](/home/essibae5/UIQ/scripts/makeeq.py):
+Use [`scripts/makeeq.py`](scripts/makeeq.py):
 
 ```bash
 ./scripts/makeeq.py \
-  --mapping-json input/vggsound_to_audiocaps_top1.json \
   --captions-csv input/audiocaps/test.csv \
-  --output-dir results/eq/audiocaps_test
+  --output-dir results/eq/audiocaps_test \
+  --split test
 ```
 
 Optional arguments:
 
 - `--split`: split label stored in metadata, default `test`
-- `--num-queries`: limit mapping entries
-- `--config`: use a custom config file
+- `--num-queries`: cap number of clips (order after grouping)
+- `--config`: custom config file
 
 Generated files:
 
@@ -136,18 +146,6 @@ Each JSONL line follows this shape:
 }
 ```
 
-EQ records may additionally include:
-
-```json
-{
-  "vgg": {
-    "category": "...",
-    "audio_id": "...",
-    "similarity": 0.0
-  }
-}
-```
-
 ## Repository Layout
 
 ```text
@@ -156,7 +154,8 @@ repo/
 ├── eq_generation/
 ├── scripts/
 │   ├── prepare_data.py
-│   ├── makeeq.py
-│   └── map_vggsound_to_audiocaps_top1.py
+│   ├── download_audiocaps_hf.py
+│   ├── merge_audiocaps_captions.py
+│   └── makeeq.py
 └── results/
 ```

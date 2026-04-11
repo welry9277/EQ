@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import argparse
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 
-# Common URLs for dataset metadata
-AUDIOCAPS_URL = "https://raw.githubusercontent.com/cdjkim/audiocaps/master/dataset/train.csv"
+# Official AudioCaps caption CSVs (cdjkim/audiocaps)
+_AUDIOCAPS_BASE = "https://raw.githubusercontent.com/cdjkim/audiocaps/refs/heads/master/dataset"
+AUDIOCAPS_URLS = {
+    "train": f"{_AUDIOCAPS_BASE}/train.csv",
+    "val": f"{_AUDIOCAPS_BASE}/val.csv",
+    "test": f"{_AUDIOCAPS_BASE}/test.csv",
+}
 CLOTHO_URL = "https://zenodo.org/records/4783391/files/clotho_captions_development.csv"
 
 def download_file(url: str, dest: Path) -> None:
@@ -25,7 +30,7 @@ def download_file(url: str, dest: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Download and prepare dataset metadata for EQ generation")
-    parser.add_argument("--dataset", required=True, choices=["audiocaps", "clotho", "mecat", "all"], 
+    parser.add_argument("--dataset", required=True, choices=["audiocaps", "clotho", "mecat", "all"],
                         help="Dataset to prepare (downloads to input/ directory)")
     args = parser.parse_args()
 
@@ -34,17 +39,18 @@ def main():
 
     for ds in datasets_to_process:
         if ds == "audiocaps":
-            out_path = base_dir / "audiocaps" / "train.csv"
-            download_file(AUDIOCAPS_URL, out_path)
-            
+            for split, url in AUDIOCAPS_URLS.items():
+                out_path = base_dir / "audiocaps" / f"{split}.csv"
+                download_file(url, out_path)
+
         elif ds == "clotho":
             out_path = base_dir / "clotho" / "clotho_captions_development.csv"
             download_file(CLOTHO_URL, out_path)
-            
+
         elif ds == "mecat":
             mecat_dir = base_dir / "mecat" / "metadata"
             mecat_dir.mkdir(parents=True, exist_ok=True)
-            print(f"⚠️  MeCAT metadata is usually restricted or complex to download automatically.")
+            print("⚠️  MeCAT metadata is usually restricted or complex to download automatically.")
             print(f"   Please manually place the MeCAT JSON files into: {mecat_dir}")
 
 if __name__ == '__main__':

@@ -29,13 +29,12 @@ class QueryResult:
     query_type: QueryType
     generated_query: str
     original_captions: list[str]
-    vgg: Optional[dict] = None
     metadata: Optional[dict] = field(default_factory=dict)
     source_model: str = "gpt-5.4-mini"
     regen_model: str = "gpt-5.4-mini"
 
     def to_dict(self) -> dict:
-        result = {
+        return {
             "audio_id": self.audio_id,
             "dataset": self.dataset,
             "dataset_slug": self.dataset_slug,
@@ -46,6 +45,3 @@ class QueryResult:
             "source_model": self.source_model,
             "regen_model": self.regen_model,
         }
-        if self.vgg is not None:
-            result["vgg"] = self.vgg
-        return result
