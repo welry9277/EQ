@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -13,7 +12,6 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from eq_generation import EQGenerator, QueryResult, QueryType, load_audiocaps, load_config
-
 
 EQ_QUERY_TYPES = [
     QueryType.KEY_PHRASE,
@@ -34,32 +32,6 @@ EQ_OUTPUT_FILENAMES = {
 }
 
 
-def load_mapping_entries(mapping_json_path: str) -> list[dict[str, Any]]:
-    with open(mapping_json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, list):
-        raise ValueError("Mapping JSON must contain a top-level list.")
-    return data
-
-
-def build_record_index(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {str(record["audio_id"]).strip(): record for record in records}
-
-
-def extract_top1_caption(mapping_entry: dict[str, Any]) -> tuple[str, str]:
-    matched_caption = str(mapping_entry.get("matched_caption", "")).strip()
-    if matched_caption:
-        return matched_caption, "matched_caption"
-
-    top_k_captions = mapping_entry.get("top_k_captions")
-    if isinstance(top_k_captions, list) and top_k_captions:
-        top1_caption = str(top_k_captions[0].get("caption", "")).strip()
-        if top1_caption:
-            return top1_caption, "top_k_captions[0].caption"
-
-    return "", ""
-
-
 def format_caption_set(captions: list[str]) -> str:
     return "\n".join(f"- {caption}" for caption in captions)
 
@@ -69,71 +41,32 @@ def append_log(log_lines: list[str], message: str) -> None:
     log_lines.append(message)
 
 
-def validate_and_prepare_entries(
-    mapping_entries: list[dict[str, Any]],
-    record_index: dict[str, dict[str, Any]],
+def prepare_entries_from_records(
+    records: list[dict[str, Any]],
     log_lines: list[str],
 ) -> list[dict[str, Any]]:
-    prepared = []
-
-    for idx, entry in enumerate(mapping_entries):
-        audio_id = str(entry.get("audio_id", "")).strip()
-        category = str(entry.get("category", "")).strip()
-
-        if not audio_id:
+    """One row per unique audio_id; prompts use the full caption set per clip."""
+    prepared: list[dict[str, Any]] = []
+    for idx, record in enumerate(records):
+        caption_set = record.get("original_captions") or []
+        if not caption_set:
             append_log(
                 log_lines,
-                f"[ERROR] Mapping entry {idx} is missing audio_id. category={category!r}",
+                f"[WARN] Skipping record {idx} audio_id={record.get('audio_id')!r}: no captions.",
             )
             continue
-
-        record = record_index.get(audio_id)
-        if record is None:
-            append_log(
-                log_lines,
-                f"[ERROR] Missing caption set for audio_id={audio_id} category={category!r}. "
-                "AudioCaps lookup uses audio_id as the authoritative key.",
-            )
-            continue
-
-        top1_caption, top1_source = extract_top1_caption(entry)
-        if not top1_caption:
-            append_log(
-                log_lines,
-                f"[ERROR] Missing top-1 caption for audio_id={audio_id} category={category!r}. "
-                "Expected matched_caption or top_k_captions[0].caption.",
-            )
-            continue
-
-        caption_set = record["original_captions"]
-        if top1_caption not in caption_set:
-            append_log(
-                log_lines,
-                f"[ERROR] Top-1 caption mismatch for audio_id={audio_id} category={category!r}. "
-                f"Caption from {top1_source} was not found in the AudioCaps caption set for that audio_id.",
-            )
-            continue
-
         prepared.append(
             {
-                "audio_id": audio_id,
+                "audio_id": str(record["audio_id"]).strip(),
                 "dataset": record["dataset"],
                 "dataset_slug": record["dataset_slug"],
-                "top1_caption": top1_caption,
                 "caption_set": caption_set,
                 "metadata": {
                     **record.get("metadata", {}),
                     "caption_count": len(caption_set),
-                    "top1_caption_source": top1_source,
-                },
-                "vgg": {
-                    "category": entry.get("category"),
-                    "audio_id": audio_id,
-                    "similarity": entry.get("similarity"),
                 },
             }
         )
-
     return prepared
 
 
@@ -144,10 +77,7 @@ def build_results_for_query_type(
     source_model: str,
     regen_model: str,
 ) -> list[QueryResult]:
-    if query_type == QueryType.FULL_CAPTION:
-        prompts = [format_caption_set(entry["caption_set"]) for entry in prepared_entries]
-    else:
-        prompts = [entry["top1_caption"] for entry in prepared_entries]
+    prompts = [format_caption_set(entry["caption_set"]) for entry in prepared_entries]
 
     raw_results = generator.generate(
         captions=prompts,
@@ -158,11 +88,7 @@ def build_results_for_query_type(
 
     results = []
     for entry, raw_result in zip(prepared_entries, raw_results):
-        if query_type == QueryType.FULL_CAPTION:
-            original_captions = list(entry["caption_set"])
-        else:
-            original_captions = [entry["top1_caption"]]
-
+        original_captions = list(entry["caption_set"])
         results.append(
             QueryResult(
                 audio_id=entry["audio_id"],
@@ -171,7 +97,6 @@ def build_results_for_query_type(
                 query_type=query_type,
                 generated_query=raw_result.generated_query,
                 original_captions=original_captions,
-                vgg=entry["vgg"],
                 metadata=entry["metadata"],
                 source_model=source_model,
                 regen_model=regen_model,
@@ -191,9 +116,10 @@ def validate_outputs(
 
     for query_type, results in outputs_by_type.items():
         if len(results) != len(prepared_entries):
+            n_prep = len(prepared_entries)
             append_log(
                 log_lines,
-                f"[ERROR] {query_type.value} produced {len(results)} outputs for {len(prepared_entries)} mapping entries.",
+                f"[ERROR] {query_type.value} produced {len(results)} outputs for {n_prep} prepared entries.",
             )
 
         for result in results:
@@ -206,18 +132,11 @@ def validate_outputs(
                 )
                 continue
 
-            if query_type == QueryType.FULL_CAPTION:
-                if result.original_captions != expected_entry["caption_set"]:
-                    append_log(
-                        log_lines,
-                        f"[ERROR] Full-Caption output for audio_id={result.audio_id} "
-                        "did not retain the complete caption set from AudioCaps.",
-                    )
-            elif result.original_captions != [expected_entry["top1_caption"]]:
+            if result.original_captions != list(expected_entry["caption_set"]):
                 append_log(
                     log_lines,
                     f"[ERROR] {query_type.value} output for audio_id={result.audio_id} "
-                    "did not retain exactly the matched top-1 caption.",
+                    "did not retain the complete caption set.",
                 )
 
     for entry in prepared_entries:
@@ -239,12 +158,17 @@ def write_validation_log(output_dir: Path, log_lines: list[str]) -> Path:
 def main() -> None:
     load_dotenv()
 
-    parser = argparse.ArgumentParser(description="EQ (Extended Query) generation pipeline")
-    parser.add_argument("--mapping-json", required=True, help="Path to vggsound_to_audiocaps_top1.json")
-    parser.add_argument("--captions-csv", required=True, help="Path to the AudioCaps caption CSV")
+    parser = argparse.ArgumentParser(
+        description="EQ generation from an AudioCaps-style caption CSV (one row per unique clip).",
+    )
+    parser.add_argument("--captions-csv", required=True, help="Path to the caption CSV")
     parser.add_argument("--output-dir", required=True, help="Directory for per-type EQ JSONL files")
     parser.add_argument("--split", default="test", help="Split label passed into load_audiocaps(). Default: test")
-    parser.add_argument("--num-queries", type=int, help="Optional limit on number of mapping entries")
+    parser.add_argument(
+        "--num-queries",
+        type=int,
+        help="Optional limit on clips (CSV / record order after grouping).",
+    )
     parser.add_argument("--config", type=str, default="config.yaml", help="Path to configuration file")
     args = parser.parse_args()
 
@@ -261,23 +185,18 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     log_lines: list[str] = []
-    append_log(log_lines, f"[INFO] Loading AudioCaps records from {args.captions_csv}")
+    append_log(log_lines, f"[INFO] Loading records from {args.captions_csv}")
     records = load_audiocaps(args.captions_csv, split=args.split)
-    record_index = build_record_index(records)
-    append_log(log_lines, f"[INFO] Loaded {len(records)} unique AudioCaps audio_id groups")
+    append_log(log_lines, f"[INFO] Loaded {len(records)} unique audio_id groups")
 
-    mapping_entries = load_mapping_entries(args.mapping_json)
-    if args.num_queries and len(mapping_entries) > args.num_queries:
-        mapping_entries = mapping_entries[: args.num_queries]
-    append_log(log_lines, f"[INFO] Loaded {len(mapping_entries)} mapping entries from {args.mapping_json}")
+    if args.num_queries is not None and len(records) > args.num_queries:
+        records = records[: args.num_queries]
+        append_log(log_lines, f"[INFO] Limited to first {len(records)} clips via --num-queries.")
 
-    prepared_entries = validate_and_prepare_entries(mapping_entries, record_index, log_lines)
-    if len(prepared_entries) != len(mapping_entries):
-        append_log(
-            log_lines,
-            f"[ERROR] Validation failed for {len(mapping_entries) - len(prepared_entries)} mapping entries. "
-            "EQ generation aborted.",
-        )
+    prepared_entries = prepare_entries_from_records(records, log_lines)
+    append_log(log_lines, f"[INFO] Prepared {len(prepared_entries)} entries.")
+    if not prepared_entries:
+        append_log(log_lines, "[ERROR] No prepared entries; aborting.")
         log_path = write_validation_log(output_dir, log_lines)
         raise SystemExit(f"See validation log: {log_path}")
 

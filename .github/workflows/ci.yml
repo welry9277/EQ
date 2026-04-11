@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Pin Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Ruff check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "check eq_generation scripts"
+
+      - name: Byte-compile
+        run: uv run python -m compileall -q eq_generation scripts

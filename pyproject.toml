@@ -5,18 +5,15 @@ description = "EQ Generation Pipeline"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "openai",
+    "openai>=1.0.0",
     "tqdm",
     "python-dotenv",
-    "torch",
-    "transformers",
     "pyyaml>=6.0.3",
-    "audiocraft",
-    "datasets>=4.5.0",
-    "torchaudio>=2.1.0",
-    "soundfile>=0.13.1",
-    "librosa>=0.11.0",
-    "torchvision>=0.16.0",
+]
+
+[project.optional-dependencies]
+hf = [
+    "datasets>=2.14.0",
 ]
 
 [build-system]
@@ -24,11 +21,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-<<<<<<< HEAD
 packages = ["eq_generation"]
-=======
-packages = ["uiq_generation"]
 
-[tool.uv.sources]
-audiocraft = { git = "https://github.com/facebookresearch/audiocraft.git" }
->>>>>>> main
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+src = ["eq_generation", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt templates contain long example lines by design.
+"eq_generation/generators/prompts.py" = ["E501"]
