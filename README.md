@@ -98,7 +98,8 @@ The pipeline generates six variants per clip:
 - `indirect`
 - `full_caption`
 
-All types see the **full per-clip caption list** in the prompt; `original_captions` in JSONL is that full list for every type.
+- **`full_caption`**: prompted with the **full caption list** for the clip; `original_captions` in JSONL is that full list.
+- **`key_phrase`, `statement`, `question`, `command`, `indirect`**: prompted with the **middle caption only** (index `len // 2`, e.g. the 3rd of 5); `original_captions` is a one-element list with that string. Metadata adds `eq_reference`, `middle_caption_index`, and `full_caption_count`.
 
 ## Generate EQ
 
@@ -128,6 +129,15 @@ Generated files:
 
 Validation logs are written to `eq_validation.log`.
 
+### Merge EQ types per clip (one file)
+
+After generation, to combine the six `eq_*.jsonl` files into **one record per `audio_id`** with `original_captions` and all six strings under `generated_queries`:
+
+```bash
+./scripts/merge_eq_by_clip.py --input-dir results/eq/test_sample5
+# writes results/eq/test_sample5/eq_by_clip.jsonl (pretty-printed blocks; use --compact for strict one-line JSONL)
+```
+
 ## Output Schema
 
 Each JSONL line follows this shape:
@@ -156,6 +166,7 @@ repo/
 │   ├── prepare_data.py
 │   ├── download_audiocaps_hf.py
 │   ├── merge_audiocaps_captions.py
+│   ├── merge_eq_by_clip.py
 │   └── makeeq.py
 └── results/
 ```

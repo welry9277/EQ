@@ -1,0 +1,143 @@
+#!/usr/bin/env -S uv run python
+"""Merge per-query-type EQ JSONL files into one record per clip (audio_id).
+
+Reads eq_*.jsonl in a directory (compact or pretty-printed blocks), joins on audio_id,
+and writes JSONL with original_captions + all generated_queries together.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any, Iterator
+
+# Process full_caption first so merged original_captions is the full set (other types store middle-only).
+QUERY_TYPE_FILES = [
+    ("full_caption", "eq_full_caption.jsonl"),
+    ("key_phrase", "eq_key_phrase.jsonl"),
+    ("statement", "eq_statement.jsonl"),
+    ("question", "eq_question.jsonl"),
+    ("command", "eq_command.jsonl"),
+    ("indirect", "eq_indirect.jsonl"),
+]
+
+
+def iter_json_objects(text: str) -> Iterator[dict[str, Any]]:
+    decoder = json.JSONDecoder()
+    idx = 0
+    n = len(text)
+    while idx < n:
+        while idx < n and text[idx].isspace():
+            idx += 1
+        if idx >= n:
+            break
+        obj, end = decoder.raw_decode(text, idx)
+        if not isinstance(obj, dict):
+            raise ValueError(f"Expected JSON object at offset {idx}, got {type(obj)}")
+        yield obj
+        idx = end
+
+
+def load_records(path: Path) -> list[dict[str, Any]]:
+    text = path.read_text(encoding="utf-8")
+    return list(iter_json_objects(text))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Merge EQ JSONL files by audio_id.")
+    parser.add_argument(
+        "--input-dir",
+        type=Path,
+        default=Path("results/eq/test_sample5"),
+        help="Directory containing eq_*.jsonl (default: results/eq/test_sample5)",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output JSONL path (default: <input-dir>/eq_by_clip.jsonl)",
+    )
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Strict JSONL: one minified JSON object per line (default: pretty blocks + blank lines).",
+    )
+    args = parser.parse_args()
+    pretty = not args.compact
+    out_path = args.output or (args.input_dir / "eq_by_clip.jsonl")
+
+    by_audio: dict[str, dict[str, Any]] = {}
+
+    for qtype, filename in QUERY_TYPE_FILES:
+        path = args.input_dir / filename
+        if not path.is_file():
+            raise SystemExit(f"Missing file: {path}")
+        for rec in load_records(path):
+            aid = str(rec.get("audio_id", "")).strip()
+            if not aid:
+                continue
+            gq = str(rec.get("generated_query", "")).strip()
+            if aid not in by_audio:
+                by_audio[aid] = {
+                    "audio_id": aid,
+                    "dataset": rec.get("dataset"),
+                    "dataset_slug": rec.get("dataset_slug"),
+                    "original_captions": rec.get("original_captions"),
+                    "metadata": rec.get("metadata"),
+                    "source_model": rec.get("source_model"),
+                    "regen_model": rec.get("regen_model"),
+                    "generated_queries": {},
+                }
+            else:
+                oc = rec.get("original_captions")
+                if oc != by_audio[aid]["original_captions"]:
+                    print(
+                        f"[WARN] original_captions mismatch for {aid} in {filename}; "
+                        "keeping first file's captions.",
+                    )
+            by_audio[aid]["generated_queries"][qtype] = gq
+
+    missing: list[tuple[str, list[str]]] = []
+    for aid, row in by_audio.items():
+        g = row["generated_queries"]
+        want = [qt for qt, _ in QUERY_TYPE_FILES]
+        absent = [qt for qt in want if qt not in g]
+        if absent:
+            missing.append((aid, absent))
+
+    if missing:
+        for aid, absent in missing:
+            print(f"[ERROR] {aid} missing types: {absent}")
+        raise SystemExit("Not all query types present for every audio_id.")
+
+    # Stable order: same as first file's encounter order if possible
+    first_path = args.input_dir / "eq_key_phrase.jsonl"
+    order = [r["audio_id"] for r in load_records(first_path) if r.get("audio_id")]
+    seen = set()
+    ordered_ids = []
+    for aid in order:
+        if aid in by_audio and aid not in seen:
+            seen.add(aid)
+            ordered_ids.append(aid)
+    for aid in sorted(by_audio.keys()):
+        if aid not in seen:
+            ordered_ids.append(aid)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    if pretty:
+        blocks = []
+        for aid in ordered_ids:
+            blocks.append(
+                json.dumps(by_audio[aid], indent=2, ensure_ascii=False),
+            )
+        out_path.write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
+    else:
+        with out_path.open("w", encoding="utf-8") as handle:
+            for aid in ordered_ids:
+                handle.write(json.dumps(by_audio[aid], ensure_ascii=False) + "\n")
+
+    print(f"[INFO] Wrote {len(ordered_ids)} records -> {out_path}")
+
+
+if __name__ == "__main__":
+    main()

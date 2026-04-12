@@ -1,0 +1,144 @@
+{
+  "audio_id": "7fmOlUlwoNg_20",
+  "dataset": "audiocaps",
+  "dataset_slug": "audiocaps_test",
+  "original_captions": [
+    "Constant rattling noise and sharp vibrations",
+    "Vibrations and rattling with people speaking in the distance",
+    "A machine is making clicking sound as people talk in the background",
+    "Clicking and screeching metal with people speaking",
+    "A machine makes stitching sounds while people are talking in the background"
+  ],
+  "metadata": {
+    "split": "test",
+    "youtube_id": "7fmOlUlwoNg",
+    "start_time": 20.0,
+    "caption_count": 5
+  },
+  "source_model": "gpt-5.4-mini",
+  "regen_model": "gpt-5.4-mini",
+  "generated_queries": {
+    "full_caption": "A machine is making constant rattling, sharp vibrations, clicking, screeching metal, and stitching sounds while people speak in the distance.",
+    "key_phrase": "A machine is making clicking sound as people talk in the background",
+    "statement": "A machine is making clicking sound as people talk in the background",
+    "question": "Does this audio contain the sound of a machine making clicking sounds as people talk in the background?",
+    "command": "Find audio of a machine making clicking sounds as people talk in the background.",
+    "indirect": "I would appreciate it if you could find a clip where a machine makes clicking sounds as people talk in the background."
+  }
+}
+
+{
+  "audio_id": "6BJ455B1aAs_0",
+  "dataset": "audiocaps",
+  "dataset_slug": "audiocaps_test",
+  "original_captions": [
+    "A rocket flies by followed by a loud explosion and fire crackling as a truck engine runs idle",
+    "A whooshing noise followed by an explosion",
+    "A missile launching followed by an explosion and metal screeching as a motor hums in the background.",
+    "Whistling and an explosion",
+    "A whistling and then an explosion and crackling"
+  ],
+  "metadata": {
+    "split": "test",
+    "youtube_id": "6BJ455B1aAs",
+    "start_time": 0.0,
+    "caption_count": 5
+  },
+  "source_model": "gpt-5.4-mini",
+  "regen_model": "gpt-5.4-mini",
+  "generated_queries": {
+    "full_caption": "A rocket flies by followed by a loud explosion and fire crackling as a truck engine runs idle.",
+    "key_phrase": "A missile launching followed by an explosion and metal screeching as a motor hums in the background.",
+    "statement": "A missile launching followed by an explosion and metal screeching as a motor hums in the background.",
+    "question": "Is there an audio recording of a missile launching followed by an explosion and metal screeching while a motor hums in the background?",
+    "command": "Find audio of a missile launching followed by an explosion and metal screeching with a motor humming in the background.",
+    "indirect": "I was wondering if you might have the sound of a missile launching followed by an explosion and metal screeching while a motor hums in the background."
+  }
+}
+
+{
+  "audio_id": "GOD8Bt5LfDE_100",
+  "dataset": "audiocaps",
+  "dataset_slug": "audiocaps_test",
+  "original_captions": [
+    "Humming and vibrating with a man and children speaking and laughing",
+    "A quiet machine running and a child speaking and then an adult speaks and the child laughs",
+    "A toy train running as a young boy talks followed by plastic clanking then a child laughing",
+    "Small child speaking and a train running followed by a woman speaking and laughter",
+    "A train chugging, a child speaking, and then a female speaking and laughter"
+  ],
+  "metadata": {
+    "split": "test",
+    "youtube_id": "GOD8Bt5LfDE",
+    "start_time": 100.0,
+    "caption_count": 5
+  },
+  "source_model": "gpt-5.4-mini",
+  "regen_model": "gpt-5.4-mini",
+  "generated_queries": {
+    "full_caption": "A toy train is running with humming and vibration, while a child and an adult speak, plastic clanks, and laughter follows.",
+    "key_phrase": "A toy train running as a young boy talks, followed by plastic clanking and then a child laughing",
+    "statement": "A toy train is running while a young boy talks, followed by plastic clanking and then a child laughing.",
+    "question": "Is there a recording of a toy train running while a young boy talks, followed by plastic clanking and then a child laughing?",
+    "command": "Find audio of a toy train running while a young boy talks, followed by plastic clanking and then a child laughing.",
+    "indirect": "I was wondering if you might have the sound of a toy train running while a young boy talks, followed by plastic clanking and then a child laughing."
+  }
+}
+
+{
+  "audio_id": "YQSuFyFm3Lc_230",
+  "dataset": "audiocaps",
+  "dataset_slug": "audiocaps_test",
+  "original_captions": [
+    "A train running on a railroad track followed by a vehicle door closing and a man talking in the distance while a train horn honks and railroad crossing warning signals ring",
+    "A repeating train horn and warning bells get louder as a train approaches",
+    "Clattering of a train is ongoing, a railroad crossing bell rings, and a train horn blows",
+    "Humming and rattling followed by distant warning bells and the horn of an oncoming train",
+    "A train running on a railroad track followed by a vehicle door closing and a man talking while a train horn is blowing and railroad crossing signals are ringing in the distance"
+  ],
+  "metadata": {
+    "split": "test",
+    "youtube_id": "YQSuFyFm3Lc",
+    "start_time": 230.0,
+    "caption_count": 5
+  },
+  "source_model": "gpt-5.4-mini",
+  "regen_model": "gpt-5.4-mini",
+  "generated_queries": {
+    "full_caption": "A train is running on a railroad track with a horn blowing and railroad crossing warning signals ringing, while a vehicle door closes and a man talks in the distance.",
+    "key_phrase": "Clattering of a train is ongoing with a railroad crossing bell ringing and a train horn blowing",
+    "statement": "The audio features the clattering of a train, a railroad crossing bell ringing, and a train horn blowing.",
+    "question": "Is there an audio recording of a train clattering with a railroad crossing bell ringing and a train horn blowing?",
+    "command": "Find audio of a train clattering continuously with a railroad crossing bell ringing and a train horn blowing.",
+    "indirect": "I was wondering if you might have the sound of a train clattering, a railroad crossing bell ringing, and a train horn blowing."
+  }
+}
+
+{
+  "audio_id": "VjSEIRnLAh8_30",
+  "dataset": "audiocaps",
+  "dataset_slug": "audiocaps_test",
+  "original_captions": [
+    "Food is frying, and a woman talks",
+    "A woman is talking as food is frying",
+    "Food sizzling with some knocking and banging followed by a woman speaking",
+    "Frying and female speech",
+    "A woman speaks with food sizzling in a pan with some chopping"
+  ],
+  "metadata": {
+    "split": "test",
+    "youtube_id": "VjSEIRnLAh8",
+    "start_time": 30.0,
+    "caption_count": 5
+  },
+  "source_model": "gpt-5.4-mini",
+  "regen_model": "gpt-5.4-mini",
+  "generated_queries": {
+    "full_caption": "Food is frying with sizzling, chopping, knocking, and banging sounds while a woman speaks.",
+    "key_phrase": "Food sizzling with some knocking and banging followed by a woman speaking",
+    "statement": "Food sizzling with some knocking and banging followed by a woman speaking",
+    "question": "Does this audio contain the sound of food sizzling with some knocking and banging followed by a woman speaking?",
+    "command": "Find audio of food sizzling with some knocking and banging followed by a woman speaking.",
+    "indirect": "I was wondering if you might have the sound of food sizzling with some knocking and banging followed by a woman speaking."
+  }
+}
