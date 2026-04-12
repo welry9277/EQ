@@ -36,6 +36,13 @@ def format_caption_set(captions: list[str]) -> str:
     return "\n".join(f"- {caption}" for caption in captions)
 
 
+def middle_caption(captions: list[str]) -> str:
+    """Index len//2 (e.g. 5 captions -> index 2)."""
+    if not captions:
+        return ""
+    return captions[len(captions) // 2]
+
+
 def append_log(log_lines: list[str], message: str) -> None:
     print(message)
     log_lines.append(message)
@@ -45,7 +52,7 @@ def prepare_entries_from_records(
     records: list[dict[str, Any]],
     log_lines: list[str],
 ) -> list[dict[str, Any]]:
-    """One row per unique audio_id; prompts use the full caption set per clip."""
+    """One row per unique audio_id. full_caption uses all captions; other types use middle caption only."""
     prepared: list[dict[str, Any]] = []
     for idx, record in enumerate(records):
         caption_set = record.get("original_captions") or []
@@ -77,7 +84,10 @@ def build_results_for_query_type(
     source_model: str,
     regen_model: str,
 ) -> list[QueryResult]:
-    prompts = [format_caption_set(entry["caption_set"]) for entry in prepared_entries]
+    if query_type == QueryType.FULL_CAPTION:
+        prompts = [format_caption_set(entry["caption_set"]) for entry in prepared_entries]
+    else:
+        prompts = [middle_caption(entry["caption_set"]) for entry in prepared_entries]
 
     raw_results = generator.generate(
         captions=prompts,
@@ -88,7 +98,19 @@ def build_results_for_query_type(
 
     results = []
     for entry, raw_result in zip(prepared_entries, raw_results):
-        original_captions = list(entry["caption_set"])
+        caps = list(entry["caption_set"])
+        if query_type == QueryType.FULL_CAPTION:
+            original_captions = caps
+            meta = dict(entry["metadata"])
+        else:
+            mid = middle_caption(caps)
+            original_captions = [mid]
+            meta = {
+                **entry["metadata"],
+                "eq_reference": "middle_caption",
+                "middle_caption_index": len(caps) // 2 if caps else 0,
+                "full_caption_count": len(caps),
+            }
         results.append(
             QueryResult(
                 audio_id=entry["audio_id"],
@@ -97,7 +119,7 @@ def build_results_for_query_type(
                 query_type=query_type,
                 generated_query=raw_result.generated_query,
                 original_captions=original_captions,
-                metadata=entry["metadata"],
+                metadata=meta,
                 source_model=source_model,
                 regen_model=regen_model,
             )
@@ -132,11 +154,16 @@ def validate_outputs(
                 )
                 continue
 
-            if result.original_captions != list(expected_entry["caption_set"]):
+            caps = list(expected_entry["caption_set"])
+            if query_type == QueryType.FULL_CAPTION:
+                expected_oc = caps
+            else:
+                expected_oc = [middle_caption(caps)]
+            if result.original_captions != expected_oc:
                 append_log(
                     log_lines,
                     f"[ERROR] {query_type.value} output for audio_id={result.audio_id} "
-                    "did not retain the complete caption set.",
+                    "did not retain expected original_captions (full set for full_caption, else middle only).",
                 )
 
     for entry in prepared_entries:

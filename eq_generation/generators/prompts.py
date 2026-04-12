@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+import json
+
 from eq_generation.query_types import QueryType
 
-# 1. 원본 캡션 세트 (동일하게 유지)
+# Few-shot blocks for full_caption (entire caption set as bullets)
 _KEY_DOG_SET = """- a dog barking repeatedly in the background
 - a dog barking over distant outdoor ambience
 - repeated barking from a dog outside
@@ -16,11 +20,6 @@ _KEY_RAIN_SET = """- rain falling on a metal surface with distant thunder
 _KEY_COFFEE_SET = """- coffee machine brewing espresso with steam hissing
 - espresso machine producing coffee with steam and brewing noises
 - sound of a coffee maker brewing espresso with steam"""
-
-
-
-# 2. 고도화된 Few-Shot 템플릿
-# 각 쿼리 유형별로 '디테일'은 잃지 않으면서 '어투'만 완벽하게 바꾸도록 수정함.
 
 FULL_CAPTION_PROMPT_TEMPLATE = f"""Caption Set:
 {_KEY_DOG_SET}
@@ -38,104 +37,84 @@ Caption Set:
 {{caption}}
 Full_caption:"""
 
-KEY_PHRASE_PROMPT_TEMPLATE = f"""Caption Set:
-{_KEY_DOG_SET}
+# Few-shot prefixes for key_phrase / statement / question / command / indirect:
+# one reference caption per example. The real caption is appended via json.dumps (safe quoting).
+_KEY_PHRASE_FEWSHOT = """Caption: "a dog barking repeatedly in the background"
 Query: Repeated dog barking over distant outdoor ambience
 
-Caption Set:
-{_KEY_RAIN_SET}
+Caption: "rain falling on a metal surface with distant thunder"
 Query: Steady rain pattering on metal with distant thunder
 
-Caption Set:
-{_KEY_COFFEE_SET}
+Caption: "coffee machine brewing espresso with steam hissing"
 Query: Espresso machine brewing with steam hissing
 
-Caption Set:
-{{caption}}
-Query:"""
+"""
 
-STATEMENT_PROMPT_TEMPLATE = f"""Caption Set:
-{_KEY_DOG_SET}
+_STATEMENT_FEWSHOT = """Caption: "a dog barking repeatedly in the background"
 Statement: The audio captures a dog barking continuously in an outdoor environment.
 
-Caption Set:
-{_KEY_RAIN_SET}
+Caption: "rain falling on a metal surface with distant thunder"
 Statement: There is the sound of steady precipitation striking a metallic surface with thunder echoing far away.
 
-Caption Set:
-{_KEY_COFFEE_SET}
+Caption: "coffee machine brewing espresso with steam hissing"
 Statement: An espresso maker is operating, producing brewing sounds and hissing steam.
 
-Caption Set:
-{{caption}}
-Statement:"""
+"""
 
-COMMAND_PROMPT_TEMPLATE = f"""Caption Set:
-{_KEY_DOG_SET}
+_COMMAND_FEWSHOT = """Caption: "a dog barking repeatedly in the background"
 Command: Find audio of a dog barking repeatedly with outdoor background ambience.
 
-Caption Set:
-{_KEY_RAIN_SET}
+Caption: "rain falling on a metal surface with distant thunder"
 Command: Search for a recording of steady rain hitting a metal surface with distant thunder rumbles.
 
-Caption Set:
-{_KEY_COFFEE_SET}
+Caption: "coffee machine brewing espresso with steam hissing"
 Command: Retrieve the sound of a coffee machine brewing espresso and hissing steam.
 
-Caption Set:
-{{caption}}
-Command:"""
+"""
 
-QUESTION_PROMPT_TEMPLATE = f"""Caption Set:
-{_KEY_DOG_SET}
+_QUESTION_FEWSHOT = """Caption: "a dog barking repeatedly in the background"
 Question: Does this audio contain the sound of a dog barking repeatedly outside?
 
-Caption Set:
-{_KEY_RAIN_SET}
+Caption: "rain falling on a metal surface with distant thunder"
 Question: Is there a recording of steady rain falling on metal accompanied by distant thunder?
 
-Caption Set:
-{_KEY_COFFEE_SET}
+Caption: "coffee machine brewing espresso with steam hissing"
 Question: Are there sounds of an espresso machine brewing and emitting hissing steam?
 
-Caption Set:
-{{caption}}
-Question:"""
+"""
 
-INDIRECT_PROMPT_TEMPLATE = f"""Caption Set:
-{_KEY_DOG_SET}
+_INDIRECT_FEWSHOT = """Caption: "a dog barking repeatedly in the background"
 Polite: I would appreciate it if you could find a clip where a dog barks repeatedly in an outdoor setting.
 
-Caption Set:
-{_KEY_RAIN_SET}
+Caption: "rain falling on a metal surface with distant thunder"
 Polite: Could you please locate an audio file featuring rain pattering on metal and distant thunder?
 
-Caption Set:
-{_KEY_COFFEE_SET}
+Caption: "coffee machine brewing espresso with steam hissing"
 Polite: I was wondering if you might have the sound of an espresso maker brewing with steam hissing.
 
-Caption Set:
-{{caption}}
-Polite:"""
+"""
 
-
-
-
-CAPTION_SET_PROMPT_TEMPLATES = {
-    QueryType.KEY_PHRASE: KEY_PHRASE_PROMPT_TEMPLATE,
-    QueryType.STATEMENT: STATEMENT_PROMPT_TEMPLATE,
-    QueryType.QUESTION: QUESTION_PROMPT_TEMPLATE,
-    QueryType.COMMAND: COMMAND_PROMPT_TEMPLATE,
-    QueryType.INDIRECT: INDIRECT_PROMPT_TEMPLATE,
-    QueryType.FULL_CAPTION: FULL_CAPTION_PROMPT_TEMPLATE,
+SINGLE_REFERENCE_SUFFIX = {
+    QueryType.KEY_PHRASE: "Query:",
+    QueryType.STATEMENT: "Statement:",
+    QueryType.QUESTION: "Question:",
+    QueryType.COMMAND: "Command:",
+    QueryType.INDIRECT: "Polite:",
 }
 
-# 3. System Prompt 강화 (제약 조건 명확화)
+SINGLE_REFERENCE_FEWSHOT = {
+    QueryType.KEY_PHRASE: _KEY_PHRASE_FEWSHOT,
+    QueryType.STATEMENT: _STATEMENT_FEWSHOT,
+    QueryType.QUESTION: _QUESTION_FEWSHOT,
+    QueryType.COMMAND: _COMMAND_FEWSHOT,
+    QueryType.INDIRECT: _INDIRECT_FEWSHOT,
+}
+
 EQ_GPT_SYSTEM_PROMPT = """You are an expert data engineer tasked with generating faithful audio retrieval queries for an evaluation benchmark (EQ: Extended Query).
 Return only the final query text, with no explanation, labels, quotes, or extra formatting.
 
 Strict Rules:
-1. Stay strictly faithful to the source Caption Set. Synthesize the core details (events, environments, attributes) without inventing new, unsupported information.
+1. Stay strictly faithful to the source. When given a single Caption line, use only that text; when given a Caption Set (multiple bullets), synthesize across all lines without inventing unsupported details.
 2. Formats MUST match the target style:
 - key_phrase: A concise noun phrase containing core audio elements. DO NOT use full sentences or periods.
 - statement: An objective, declarative sentence describing the audio factually.
@@ -147,7 +126,12 @@ Strict Rules:
 
 
 def format_prompt(query_type: QueryType, caption: str) -> str:
-    return CAPTION_SET_PROMPT_TEMPLATES[query_type].format(caption=caption)
+    if query_type == QueryType.FULL_CAPTION:
+        return FULL_CAPTION_PROMPT_TEMPLATE.format(caption=caption)
+    prefix = SINGLE_REFERENCE_FEWSHOT[query_type]
+    suffix_label = SINGLE_REFERENCE_SUFFIX[query_type]
+    line = f"Caption: {json.dumps(caption)}\n{suffix_label}"
+    return prefix + line
 
 
 def get_system_prompt(query_type: QueryType, backend: str = "gpt") -> str:
