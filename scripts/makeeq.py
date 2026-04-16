@@ -205,7 +205,7 @@ def main() -> None:
     regen_model = model_config.get("regen_model", "gpt-5.4-mini")
     backend = model_config.get("backend", "gpt")
     temperature = model_config.get("temperature", 0.7)
-    batch_size = model_config.get("batch_size", 10)
+    batch_size = model_config.get("batch_size", 2)
     max_tokens = model_config.get("max_tokens", 100)
 
     output_dir = Path(args.output_dir)

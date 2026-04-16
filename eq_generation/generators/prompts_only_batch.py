@@ -105,67 +105,6 @@ Polite: I was wondering if you might have the sound of a coffee maker brewing es
 Source Caption: {{caption}}
 Polite:"""
 
-QUESTION_STARTERS = [
-    "Can you hear",
-    "Does this audio contain",
-    "Is there a recording of",
-    "Does this clip feature",
-    "Is there any sound of",
-    "Do you hear a recording of",
-    "Are there sounds of",
-    "Does the audio track include",
-    "Can we hear the sound of",
-    "Does this file capture",
-    "Are you able to identify the sound of",
-    "Does the recording showcase",
-    "Is it possible to hear",
-    "Can you catch the sound of",
-    "Do you detect",
-    "Do you notice any",
-    "Are there any recordings of",
-    "Does it sound like",
-    "Can you pick up the sound of",
-    "Do you hear anything like",
-]
-
-COMMAND_VERBS = [
-    "Find",
-    "Search for",
-    "Retrieve",
-    "Locate",
-    "Look for",
-    "Get me",
-    "Give me",
-    "Find me",
-    "Pull up",
-    "Fetch",
-    "Discover",
-    "Bring up",
-    "Identify",
-    "Play a sound of",
-    "Show me",
-    "Search",
-    "Select",
-]
-
-INDIRECT_HEDGES = [
-    "I would appreciate it if you could",
-    "Could you please",
-    "I was wondering if you might",
-    "It would be great if you could",
-    "If possible, could you",
-    "I'd be grateful",
-    "Would it be possible",
-    "I am hoping",
-    "Please",
-    "Can you",
-    "I'm looking for",
-    "May I ask you",
-    "I'd like to request",
-    "Would you be able to",
-    "I'm trying to find",
-    "Could you retrieve",
-]
 
 SINGLE_REFERENCE_SUFFIX = {
     QueryType.KEY_PHRASE: "Query:",
@@ -210,6 +149,33 @@ SYSTEM_PROMPTS = {
 
 4. Since this is a complete sentence, it must end with a period (.).""",
 
+    QueryType.QUESTION: """You are an expert at generating questions to verify the presence of audio content. Analyze the given caption and create a Yes/No Question according to the following rules.
+
+[Constraints]
+1. The sentence must be a Yes/No question starting with an auxiliary or 'be' verb, such as 'Does', 'Is', or 'Can'.
+2. Combine this with cognition or possession verbs that ask if the audio 'contains' or if one can 'hear' the sounds.
+3. Do not severely compress or break apart the original sound description; use it fully as the object part of the question.
+4. Slightly polish any overly mechanical expressions caused by the question format into natural wording (e.g., 'producing' -> 'brewing').
+5. Since this is a complete question, it must end with a question mark (?).""",
+
+    QueryType.COMMAND: """You are an expert at crafting precise instructions for search systems or agents. Analyze the given caption and generate a direct Command according to the following rules.
+
+[Constraints]
+1. Do not use a subject. Start the sentence with a strong Action Verb to directly instruct the system.
+2. Include only search/extraction directives aimed at the system, removing any unnecessary modifiers or predicates.
+3. Do not overly compress or excessively describe the original text. Group the description into one large noun phrase and provide it as the direct object of the verb.
+4. This is a complete command sentence, so it must end with a period (.).""",
+
+    QueryType.INDIRECT: """You are an expert in highly polite and conversational communication. Create an Indirect/Polite Request asking to find the sounds described in the caption according to the following rules.
+
+[Constraints]
+1. Do not use direct verbs like 'Find'. Use indirect expressions that politely ask for the other party's willingness or assistance.
+2. You must start the sentence with a polite request phrase such as 'I would appreciate it if you could...', 'Could you please...', or 'I was wondering if you might...'.
+3. Structure the rest of the sentence appropriately as a statement or a question, depending on the grammatical rules of your chosen polite introduction.""",
+    
+    
+    
+    
     QueryType.FULL_CAPTION: """You are an expert at combining fragmented audio captions into one vivid, unified scene. Analyze multiple captions and write a Full-caption according to the following rules.
 
 [Constraints]
@@ -238,49 +204,4 @@ def format_prompt(query_type: QueryType, caption: str) -> str:
 def get_system_prompt(query_type: QueryType, backend: str = "gpt") -> str:
     del backend
 
-    if query_type == QueryType.QUESTION:
-        starter = random.choice(QUESTION_STARTERS)
-        return f"""You are an expert at generating questions to verify the presence of audio content. Analyze the given caption and create a Yes/No Question according to the following rules.
-
-[Vocabulary Pool - Question Starters]
-{chr(10).join(f"- {s}" for s in QUESTION_STARTERS)}
-
-[Constraints]
-1. Diversity Enforcement: You MUST use exactly the following starter: "{starter}". This ensures variety across generations.
-2. Do not severely compress or break apart the original sound description; use it fully as the object part of the question immediately following the starter.
-3. Slightly polish any overly mechanical expressions caused by the question format into natural wording (e.g., 'producing' -> 'brewing').
-4. Since this is a complete question, it must end with a question mark (?).
-"""
-    
-
-    elif query_type == QueryType.COMMAND:
-        verb = random.choice(COMMAND_VERBS)
-        return f"""You are an expert at crafting precise instructions for search systems or agents. Analyze the given caption and generate a direct Command according to the following rules.
-
-[Vocabulary Pool - Action Verbs]
-{chr(10).join(f"- {v}" for v in COMMAND_VERBS)}
-
-[Constraints]
-1. Diversity Enforcement: You MUST use exactly the following verb: "{verb}". This ensures variety across generations.
-2. Do not use a subject. Start the sentence directly with the chosen Action Verb to instruct the system.
-3. Include only search/extraction directives aimed at the system, removing any unnecessary modifiers or predicates.
-4. Do not overly compress or excessively describe the original text. Group the description into one large noun phrase and provide it as the direct object of the chosen verb.
-5. This is a complete command sentence, so it must end with a period (.).
-"""
-    
-
-    elif query_type == QueryType.INDIRECT:
-        hedge = random.choice(INDIRECT_HEDGES)
-        return f"""You are an expert in highly polite and conversational communication. Create an Indirect/Polite Request asking to find the sounds described in the caption according to the following rules.
-
-[Vocabulary Pool - Polite Hedges]
-{chr(10).join(f"- {h}" for h in INDIRECT_HEDGES)}
-
-[Constraints]
-1. Diversity Enforcement: You MUST use exactly the following hedge: "{hedge}". This ensures variety across generations.
-2. Do not use direct verbs like 'Find' at the very beginning. Use the chosen indirect expression from the pool that politely asks for the other party's willingness or assistance.
-3. Smoothly connect the chosen polite hedge to the task of finding/locating the sound described in the original caption.
-4. Structure the rest of the sentence appropriately as a statement or a question, depending on the grammatical rules of the chosen polite introduction, and end with the correct punctuation (. or ?).
-"""
-    else:
-        return SYSTEM_PROMPTS[query_type]
+    return SYSTEM_PROMPTS[query_type]
