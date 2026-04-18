@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from eq_generation import EQGenerator, QueryResult, QueryType, load_audiocaps, load_config
+from eq_generation import EQGenerator, QueryResult, QueryType, load_audiocaps, load_clotho, load_config
 
 EQ_QUERY_TYPES = [
     QueryType.KEY_PHRASE,
@@ -188,9 +188,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="EQ generation from an AudioCaps-style caption CSV (one row per unique clip).",
     )
+    parser.add_argument(
+        "--dataset",
+        required=True,
+        choices=["audiocaps", "clotho"],
+        help="Dataset type used to choose the input loader.",
+    )
     parser.add_argument("--captions-csv", required=True, help="Path to the caption CSV")
     parser.add_argument("--output-dir", required=True, help="Directory for per-type EQ JSONL files")
-    parser.add_argument("--split", default="test", help="Split label passed into load_audiocaps(). Default: test")
+    parser.add_argument(
+        "--split",
+        default="test",
+        help="Split label stored in output metadata. Default: test",
+    )
     parser.add_argument(
         "--num-queries",
         type=int,
@@ -213,7 +223,11 @@ def main() -> None:
 
     log_lines: list[str] = []
     append_log(log_lines, f"[INFO] Loading records from {args.captions_csv}")
-    records = load_audiocaps(args.captions_csv, split=args.split)
+    append_log(log_lines, f"[INFO] Using dataset loader: {args.dataset}")
+    if args.dataset == "clotho":
+        records = load_clotho(args.captions_csv, split=args.split)
+    else:
+        records = load_audiocaps(args.captions_csv, split=args.split)
     append_log(log_lines, f"[INFO] Loaded {len(records)} unique audio_id groups")
 
     if args.num_queries is not None and len(records) > args.num_queries:
