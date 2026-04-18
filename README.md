@@ -107,6 +107,7 @@ Use [`scripts/makeeq.py`](scripts/makeeq.py):
 
 ```bash
 ./scripts/makeeq.py \
+  --dataset audiocaps \
   --captions-csv input/audiocaps/test.csv \
   --output-dir results/eq/audiocaps_test \
   --split test
@@ -114,6 +115,7 @@ Use [`scripts/makeeq.py`](scripts/makeeq.py):
 
 Optional arguments:
 
+- `--dataset`: original dataset source to convert
 - `--split`: split label stored in metadata, default `test`
 - `--num-queries`: cap number of clips (order after grouping)
 - `--config`: custom config file
