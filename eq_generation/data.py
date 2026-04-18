@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -42,6 +43,41 @@ def load_audiocaps(csv_path: str, split: str = "test") -> list[dict]:
             record["original_captions"].append(caption)
 
     return list(data.values())
+
+
+def load_clotho(csv_path: str, split: str = "evaluation") -> list[dict[str, Any]]:
+    data: list[dict[str, Any]] = []
+    with open(csv_path, "r", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            file_name = row.get("file_name", "").strip()
+            if not file_name:
+                continue
+
+            original_captions = []
+            for caption_index in range(1, 6):
+                caption = row.get(f"caption_{caption_index}", "").strip()
+                if caption:
+                    original_captions.append(caption)
+
+            if not original_captions:
+                continue
+
+            audio_id = Path(file_name).stem
+            data.append(
+                {
+                    "audio_id": audio_id,
+                    "dataset": "clotho",
+                    "dataset_slug": f"clotho_{split}",
+                    "original_captions": original_captions,
+                    "metadata": {
+                        "split": split,
+                        "file_name": file_name,
+                    },
+                }
+            )
+
+    return data
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
