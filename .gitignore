@@ -209,9 +209,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# EQ pipeline data
+# EQ pipeline data 
 
-result/
 
 # Codex config
 .codex
