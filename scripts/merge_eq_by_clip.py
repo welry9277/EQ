@@ -22,6 +22,24 @@ QUERY_TYPE_FILES = [
 ]
 
 
+def normalize_captions(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def captions_compatible(
+    merged_captions: list[str],
+    record_captions: list[str],
+    qtype: str,
+) -> bool:
+    if qtype == "full_caption":
+        return record_captions == merged_captions
+    if len(record_captions) != 1:
+        return False
+    return record_captions[0] in merged_captions
+
+
 def iter_json_objects(text: str) -> Iterator[dict[str, Any]]:
     decoder = json.JSONDecoder()
     idx = 0
@@ -89,8 +107,9 @@ def main() -> None:
                     "generated_queries": {},
                 }
             else:
-                oc = rec.get("original_captions")
-                if oc != by_audio[aid]["original_captions"]:
+                merged_captions = normalize_captions(by_audio[aid]["original_captions"])
+                record_captions = normalize_captions(rec.get("original_captions"))
+                if not captions_compatible(merged_captions, record_captions, qtype):
                     print(
                         f"[WARN] original_captions mismatch for {aid} in {filename}; "
                         "keeping first file's captions.",
