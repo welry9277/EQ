@@ -2,7 +2,7 @@
 """Merge per-query-type EQ JSONL files into one record per clip (audio_id).
 
 Reads eq_*.jsonl in a directory (compact or pretty-printed blocks), joins on audio_id,
-and writes JSONL with original_captions + all generated_queries together.
+and writes JSONL with original_captions + source_caption + all generated_queries together.
 """
 from __future__ import annotations
 
@@ -20,6 +20,31 @@ QUERY_TYPE_FILES = [
     ("command", "eq_command.jsonl"),
     ("indirect", "eq_indirect.jsonl"),
 ]
+
+
+def normalize_captions(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def extract_source_caption(value: Any) -> str | None:
+    captions = normalize_captions(value)
+    if len(captions) != 1:
+        return None
+    return captions[0]
+
+
+def captions_compatible(
+    merged_captions: list[str],
+    record_captions: list[str],
+    qtype: str,
+) -> bool:
+    if qtype == "full_caption":
+        return record_captions == merged_captions
+    if len(record_captions) != 1:
+        return False
+    return record_captions[0] in merged_captions
 
 
 def iter_json_objects(text: str) -> Iterator[dict[str, Any]]:
@@ -83,18 +108,37 @@ def main() -> None:
                     "dataset": rec.get("dataset"),
                     "dataset_slug": rec.get("dataset_slug"),
                     "original_captions": rec.get("original_captions"),
+                    "source_caption": None,
                     "metadata": rec.get("metadata"),
                     "source_model": rec.get("source_model"),
                     "regen_model": rec.get("regen_model"),
                     "generated_queries": {},
                 }
             else:
-                oc = rec.get("original_captions")
-                if oc != by_audio[aid]["original_captions"]:
+                merged_captions = normalize_captions(by_audio[aid]["original_captions"])
+                record_captions = normalize_captions(rec.get("original_captions"))
+                if not captions_compatible(merged_captions, record_captions, qtype):
                     print(
                         f"[WARN] original_captions mismatch for {aid} in {filename}; "
                         "keeping first file's captions.",
                     )
+
+            if qtype != "full_caption":
+                source_caption = extract_source_caption(rec.get("original_captions"))
+                if source_caption is None:
+                    print(
+                        f"[WARN] expected exactly one source caption for {aid} in {filename}; "
+                        "could not determine source_caption.",
+                    )
+                else:
+                    merged_source = by_audio[aid]["source_caption"]
+                    if merged_source is None:
+                        by_audio[aid]["source_caption"] = source_caption
+                    elif merged_source != source_caption:
+                        print(
+                            f"[WARN] source_caption mismatch for {aid}: "
+                            f"{merged_source!r} != {source_caption!r} ({filename})",
+                        )
             by_audio[aid]["generated_queries"][qtype] = gq
 
     missing: list[tuple[str, list[str]]] = []
