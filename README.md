@@ -1,4 +1,5 @@
 # EQ Generation Pipeline
+[fix] for wjm test
 
 LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval from an **AudioCaps-style caption CSV** or **MeCAT JSON captions**. Outputs are validated and saved as JSONL.
 
