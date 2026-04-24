@@ -221,3 +221,5 @@ input/mecat/flac_files/
 input/mecat/json_files/
 # Codex config
 .codex
+input/mecat/flac_files.zip
+input/mecat/*.zip
