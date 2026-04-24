@@ -1,6 +1,6 @@
 # EQ Generation Pipeline
 
-LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval from an **AudioCaps-style caption CSV** (grouped by clip). Every query type is prompted with the **full caption set** per clip; outputs are validated and saved as JSONL.
+LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval from an **AudioCaps-style caption CSV** or **MeCAT JSON captions**. Outputs are validated and saved as JSONL.
 
 ## Installation
 
@@ -56,7 +56,55 @@ https://zenodo.org/records/3490684
 Behavior:
 
 - `audiocaps`: downloads official `train.csv`, `val.csv`, and `test.csv` into `input/audiocaps/` from [cdjkim/audiocaps](https://github.com/cdjkim/audiocaps/tree/master/dataset)
-- `mecat`: creates `input/mecat/metadata/` for manual placement
+- `mecat`: creates `input/mecat/json_files/` for manual placement
+
+### MeCAT 파일 준비
+
+MeCAT은 자동 다운로드를 지원하지 않습니다. GitHub에 올려둔 ZIP 파일을 받아 `input/mecat/` 아래에 두고 압축을 해제하면 됩니다.
+
+예시:
+
+```bash
+mkdir -p input/mecat
+
+# GitHub에서 받은 ZIP들을 input/mecat/ 아래에 둔 뒤
+mv ~/Downloads/json_files.zip input/mecat/json_files.zip
+mv ~/Downloads/flac_files.zip input/mecat/flac_files.zip
+
+# unzip이 있으면
+unzip input/mecat/json_files.zip -d input/mecat/
+unzip input/mecat/flac_files.zip -d input/mecat/
+
+# unzip이 없는 환경이면 python으로
+python3 -c "import zipfile; zipfile.ZipFile('input/mecat/json_files.zip').extractall('input/mecat/')"
+python3 -c "import zipfile; zipfile.ZipFile('input/mecat/flac_files.zip').extractall('input/mecat/')"
+```
+
+압축을 `input/mecat/` 바로 아래에 풀었다면, `.json`과 `.flac`를 각각 폴더로 분리합니다:
+
+```bash
+mkdir -p input/mecat/json_files input/mecat/flac_files
+find input/mecat -maxdepth 1 -type f -name '*.json' -exec mv -t input/mecat/json_files {} +
+find input/mecat -maxdepth 1 -type f -name '*.flac' -exec mv -t input/mecat/flac_files {} +
+```
+
+정리 후에는 아래 구조가 되면 됩니다:
+
+```text
+input/mecat/
+├── flac_files.zip
+├── flac_files/
+│   ├── <audio_id>.flac
+│   ├── <audio_id>.flac
+│   └── ...
+├── json_files.zip
+└── json_files/
+    ├── <audio_id>.json
+    ├── <audio_id>.json
+    └── ...
+```
+
+`makeeq.py`는 `input/mecat/json_files/` 안의 각 JSON에서 `short` 필드를 읽어 사용합니다.
 
 ### AudioCaps via Hugging Face (`datasets`)
 
@@ -99,7 +147,8 @@ The pipeline generates six variants per clip:
 - `full_caption`
 
 - **`full_caption`**: prompted with the **full caption list** for the clip; `original_captions` in JSONL is that full list.
-- **`key_phrase`, `statement`, `question`, `command`, `indirect`**: prompted with the **middle caption only** (index `len // 2`, e.g. the 3rd of 5); `original_captions` is a one-element list with that string. Metadata adds `eq_reference`, `middle_caption_index`, and `full_caption_count`.
+- **`key_phrase`, `statement`, `question`, `command`, `indirect`**: prompted with the **middle caption only** (index `len // 2`); `original_captions` is a one-element list with that string. Metadata adds `eq_reference`, `middle_caption_index`, and `full_caption_count`.
+- **MeCAT**: the loader uses the JSON `short` field as the caption list. That means `full_caption` uses all `short` captions, and every other query type uses only the middle `short` caption.
 
 ## Generate EQ
 
@@ -111,6 +160,16 @@ Use [`scripts/makeeq.py`](scripts/makeeq.py):
   --captions-csv input/audiocaps/test.csv \
   --output-dir results/eq/audiocaps_test \
   --split test
+```
+
+MeCAT example:
+
+```bash
+./scripts/makeeq.py \
+  --dataset mecat \
+  --captions-path input/mecat/json_files \
+  --output-dir results/eq/mecat_default \
+  --split default
 ```
 
 Optional arguments:

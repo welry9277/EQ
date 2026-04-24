@@ -48,7 +48,7 @@ def main():
             download_file(CLOTHO_URL, out_path)
 
         elif ds == "mecat":
-            mecat_dir = base_dir / "mecat" / "metadata"
+            mecat_dir = base_dir / "mecat" / "json_files"
             mecat_dir.mkdir(parents=True, exist_ok=True)
             print("⚠️  MeCAT metadata is usually restricted or complex to download automatically.")
             print(f"   Please manually place the MeCAT JSON files into: {mecat_dir}")

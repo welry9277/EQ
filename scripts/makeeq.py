@@ -11,7 +11,15 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from eq_generation import EQGenerator, QueryResult, QueryType, load_audiocaps, load_clotho, load_config
+from eq_generation import (
+    EQGenerator,
+    QueryResult,
+    QueryType,
+    load_audiocaps,
+    load_clotho,
+    load_config,
+    load_mecat,
+)
 
 EQ_QUERY_TYPES = [
     QueryType.KEY_PHRASE,
@@ -186,15 +194,21 @@ def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(
-        description="EQ generation from an AudioCaps-style caption CSV (one row per unique clip).",
+        description="EQ generation from dataset captions or MECAT short-caption JSON files.",
     )
     parser.add_argument(
         "--dataset",
         required=True,
-        choices=["audiocaps", "clotho"],
+        choices=["audiocaps", "clotho", "mecat"],
         help="Dataset type used to choose the input loader.",
     )
-    parser.add_argument("--captions-csv", required=True, help="Path to the caption CSV")
+    parser.add_argument(
+        "--captions-csv",
+        "--captions-path",
+        dest="captions_path",
+        required=True,
+        help="Path to the caption CSV, or a MECAT JSON directory when --dataset mecat.",
+    )
     parser.add_argument("--output-dir", required=True, help="Directory for per-type EQ JSONL files")
     parser.add_argument(
         "--split",
@@ -222,12 +236,14 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     log_lines: list[str] = []
-    append_log(log_lines, f"[INFO] Loading records from {args.captions_csv}")
+    append_log(log_lines, f"[INFO] Loading records from {args.captions_path}")
     append_log(log_lines, f"[INFO] Using dataset loader: {args.dataset}")
     if args.dataset == "clotho":
-        records = load_clotho(args.captions_csv, split=args.split)
+        records = load_clotho(args.captions_path, split=args.split)
+    elif args.dataset == "mecat":
+        records = load_mecat(args.captions_path, split=args.split)
     else:
-        records = load_audiocaps(args.captions_csv, split=args.split)
+        records = load_audiocaps(args.captions_path, split=args.split)
     append_log(log_lines, f"[INFO] Loaded {len(records)} unique audio_id groups")
 
     if args.num_queries is not None and len(records) > args.num_queries:
