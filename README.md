@@ -158,6 +158,111 @@ Each JSONL line follows this shape:
 }
 ```
 
+## Text-to-Audio Retrieval Evaluation
+
+This evaluation uses a dataset caption JSONL and audio files to build audio/text embeddings for each model, then computes text-to-audio retrieval performance. The scripts default to `clotho`, and the same workflow can be reused for another dataset such as `mecats` by passing `--dataset mecats`.
+
+This workflow reads the project `config*.yaml` files. Model paths, model IDs, enabled models, device, and default batch size come from `--config` (default: `config.yaml`). Dataset paths can come from the config when present, or from `--dataset` and explicit path arguments.
+
+### 1. Prepare inputs
+
+Default input paths for a dataset named `{dataset}`:
+
+- Caption JSONL: `input/captions/{dataset}/eq_by_clip.jsonl`
+- Audio directory: `input/{dataset}/audio`
+
+The caption JSONL should contain `audio_id`, `file_name`, the original caption, and generated query text. If `file_name` is empty, rows are merged by `audio_id`.
+
+### 2. Generate and merge embeddings
+
+Generate source text embeddings, generated text embeddings, and audio embeddings, then merge them into one `merged.jsonl` per model.
+
+```bash
+uv run python scripts/eval_pipeline.py
+```
+
+To run with one of the per-model configs:
+
+```bash
+uv run python scripts/eval_pipeline.py --config config_mga.yaml
+```
+
+For MECATS, pass the dataset name:
+
+```bash
+uv run python scripts/eval_pipeline.py --config config.yaml --dataset mecats
+```
+
+For a quick check on a subset of models, use `--models` and `--limit`:
+
+```bash
+uv run python scripts/eval_pipeline.py --config config.yaml --dataset mecats --models msclap laion --limit 100
+```
+
+Main output paths:
+
+- Audio embedding: `results/audioEmb/{dataset}/{model}/emb.jsonl`
+- Text embedding: `results/testEmb/{dataset}/{model}/source_emb.jsonl`, `results/testEmb/{dataset}/{model}/generated_emb.jsonl`
+- Merged embedding: `results/mergedEmb/{dataset}/{model}/merged.jsonl`
+
+### 3. Compute retrieval metrics
+
+Compute text-to-audio Recall@K from the merged embeddings.
+
+```bash
+uv run python scripts/eval_text_to_audio_retrieval.py
+```
+
+By default, the script evaluates all query pools: `original`, `full_caption`, `statement`, `command`, `key_phrase`, `indirect`, and `question`. It saves Recall@1/5/10 for each pool.
+
+Main output paths:
+
+- Metric summary: `results/retrieval/{dataset}/text_to_audio_recall.json`
+- Per-query retrieval results: `results/retrieval/{dataset}/{model}_{pool}_retrieval.jsonl`
+
+To evaluate only selected models or query pools:
+
+```bash
+uv run python scripts/eval_text_to_audio_retrieval.py \
+  --config config.yaml \
+  --dataset mecats \
+  --models msclap laion mga m2d \
+  --pools full_caption statement command \
+  --ks 1 5 10
+```
+
+### 4. Generate a recall bar plot
+
+Create a model-wise Recall@K bar plot from the metric JSON.
+
+```bash
+uv run python scripts/eval_plot_text_to_audio_recall.py
+```
+
+Default output:
+
+```text
+results/retrieval/{dataset}/text_to_audio_recall_bar.png
+```
+
+To plot another query pool or change the dataset label in the chart title:
+
+```bash
+uv run python scripts/eval_plot_text_to_audio_recall.py \
+  --config config.yaml \
+  --dataset mecats \
+  --pool statement \
+  --dataset-label MECATS
+```
+
+### 5. Interpret results
+
+- `R@1`: the fraction of queries where the correct audio is ranked first
+- `R@5`: the fraction of queries where the correct audio appears in the top 5
+- `R@10`: the fraction of queries where the correct audio appears in the top 10
+
+The `original` pool uses the original caption as the query. The other pools use different generated query text types. Comparing Recall across generated query pools helps identify which text formats are easier or harder for each model in audio retrieval.
+
 ## Repository Layout
 
 ```text
