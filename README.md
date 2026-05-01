@@ -46,15 +46,7 @@ model:
 ## Data Preparation
 
 Use [`scripts/prepare_data.py`](scripts/prepare_data.py) to create input directories and download supported metadata:
-
-<데이터 다운로드 audiocaps>
-```bash
-./scripts/prepare_data.py --dataset audiocaps
-```
-<데이터 다운로드 clotho>
-https://zenodo.org/records/3490684
-여기서 evaluation으로 끝나는 데이터 3개 다운 받으면 됨 (audio가 다운 개오래걸림)
-Behavior:
+- `clotho`: downloads offical `*_evaluation`(3 datasets) from [clotho](https://zenodo.org/records/3490684)
 
 - `audiocaps`: downloads official `train.csv`, `val.csv`, and `test.csv` into `input/audiocaps/` from [cdjkim/audiocaps](https://github.com/cdjkim/audiocaps/tree/master/dataset)
 - `mecat`: creates `input/mecat/json_files/` for manual placement
