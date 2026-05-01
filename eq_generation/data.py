@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 from typing import Any
 
@@ -76,6 +77,46 @@ def load_clotho(csv_path: str, split: str = "evaluation") -> list[dict[str, Any]
                     },
                 }
             )
+
+    return data
+
+
+def load_mecat(json_dir: str, split: str = "default") -> list[dict[str, Any]]:
+    data: list[dict[str, Any]] = []
+    base_path = Path(json_dir)
+
+    for json_path in sorted(base_path.glob("*.json")):
+        try:
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+
+        short_captions = payload.get("short")
+        if not isinstance(short_captions, list):
+            continue
+
+        original_captions = [str(caption).strip() for caption in short_captions if str(caption).strip()]
+        if not original_captions:
+            continue
+
+        audio_id = json_path.stem
+        metadata = {
+            "split": split,
+            "json_file": json_path.name,
+        }
+        domain = payload.get("domain")
+        if isinstance(domain, str) and domain.strip():
+            metadata["domain"] = domain.strip()
+
+        data.append(
+            {
+                "audio_id": audio_id,
+                "dataset": "mecat",
+                "dataset_slug": f"mecat_{split}",
+                "original_captions": original_captions,
+                "metadata": metadata,
+            }
+        )
 
     return data
 

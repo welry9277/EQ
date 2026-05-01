@@ -29,11 +29,32 @@ build/
 .mypy_cache/
 .ruff_cache/
 
-# OS & Editor
-.DS_Store
-.vscode/
-.idea/
-results/
+# PyPI configuration file
+.pypirc
 
+# Cursor
+#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
+#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
+#  refer to https://docs.cursor.com/context/ignore-files
+.cursorignore
+.cursorindexingignore
+
+# Marimo
+marimo/_static/
+marimo/_lsp/
+__marimo__/
+
+# EQ pipeline data 
+results/eq/mecat_test/eq_command.jsonl
+results/eq/mecat_test/eq_full_caption.jsonl
+results/eq/mecat_test/eq_indirect.jsonl
+results/eq/mecat_test/eq_question.jsonl
+results/eq/mecat_test/eq_statement.jsonl
+results/eq/mecat_test/eq_validation.log
+
+input/mecat/flac_files/
+input/mecat/json_files/
+# Codex config
 .codex
-.cache/
+input/mecat/flac_files.zip
+input/mecat/*.zip
