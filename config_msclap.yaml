@@ -1,0 +1,24 @@
+dataset:
+  cache_dir: input
+  hf_repo: txya900619/vggsound-16k
+  name: VGGSound
+  samples_per_class: all
+  split: all
+  streaming: false
+evaluation:
+  results_dir: results/eval_outputs
+  top_k_list:
+  - 1
+  - 5
+  - 10
+execution:
+  batch_size: 16
+  device: cuda
+  output_dir: results/eval_outputs
+  strategy: sequential
+  use_accelerate: true
+models:
+- enabled: true
+  name: msclap
+  type: pypi
+  version: '2023'
