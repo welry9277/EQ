@@ -1,0 +1,9 @@
+[INFO] Loading records from input/audiocaps/train1000.csv
+[INFO] Loaded 1000 unique audio_id groups
+[INFO] Prepared 1000 entries.
+[INFO] Generating key_phrase for 1000 entries
+[INFO] Generating statement for 1000 entries
+[INFO] Generating question for 1000 entries
+[INFO] Generating command for 1000 entries
+[INFO] Generating indirect for 1000 entries
+[INFO] EQ generation complete. Produced 5000 outputs.
