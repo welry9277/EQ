@@ -49,19 +49,6 @@ class LaionClapModel(BaseClapModel):
     def get_text_embedding(self, texts: list[str]) -> np.ndarray:
         inputs = self.processor(text=texts, return_tensors="pt", padding=True)
         inputs = {k: v.to(self.device) for k, v in inputs.items() if hasattr(v, 'to')}
-        
-        outputs = self.model.get_text_features(**inputs)
-        # Similar to audio features, might return BaseModelOutputWithPooling
-        if hasattr(outputs, "pooler_output"):
-            embeddings = outputs.pooler_output
-        elif hasattr(outputs, "text_features"):
-            embeddings = outputs.text_features
-        elif hasattr(outputs, "text_embeds"):
-            embeddings = outputs.text_embeds
-        elif isinstance(outputs, tuple):
-            embeddings = outputs[0]
-        else:
-            embeddings = outputs
-            
+        embeddings = self.model.get_text_features(**inputs)
         embeddings = embeddings / torch.norm(embeddings, p=2, dim=-1, keepdim=True)
         return embeddings.cpu().numpy()
