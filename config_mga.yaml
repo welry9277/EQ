@@ -26,4 +26,6 @@ models:
     repo_type: dataset
   name: mga
   repo_path: models_third_party/MGA-CLAP
+  # Relative to repo_path; shipped with Ming-er/MGA-CLAP
+  settings_yaml: settings/inference_example.yaml
   type: local

@@ -41,18 +41,7 @@ class LaionClapModel(BaseClapModel):
         
         inputs = {k: v.to(self.device) for k, v in inputs.items() if hasattr(v, 'to')}
         
-        outputs = self.model.get_audio_features(**inputs)
-        # HF ClapModel get_audio_features sometimes returns BaseModelOutputWithPooling 
-        # where the projected feature is in pooler_output
-        if hasattr(outputs, "pooler_output"):
-            embeddings = outputs.pooler_output
-        elif hasattr(outputs, "audio_features"):
-            embeddings = outputs.audio_features
-        elif isinstance(outputs, tuple):
-            embeddings = outputs[0]
-        else:
-            embeddings = outputs
-            
+        embeddings = self.model.get_audio_features(**inputs)
         embeddings = embeddings / torch.norm(embeddings, p=2, dim=-1, keepdim=True)
         return embeddings.cpu().numpy()
 
