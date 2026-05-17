@@ -1,7 +1,26 @@
 # EQ Generation Pipeline
-[fix] for wjm test
+
+> Temporary status note, 2026-05-14:
+> This README describes the current EQ generation pipeline and data contract.
+> Generated-query analyses and downstream paper directions are provisional until
+> the target split, prompt templates, and human/fresh validation protocol are
+> frozen.
 
 LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval from an **AudioCaps-style caption CSV** or **MeCAT JSON captions**. Outputs are validated and saved as JSONL.
+
+## Project Role
+
+`EQ` is the dataset-generation source for expressive audio retrieval queries. It
+creates key phrase, statement, question, command, indirect, and full-caption
+variants from AudioCaps/Clotho/MECAT-style captions.
+
+Current temporary interpretation:
+
+- Use this project to create controlled, fresh, or human-verified EQ splits.
+- Existing downstream results depend on the exact generated query text and split
+  construction, so they should not be treated as fixed claims.
+- For the next paper direction, controlled EQ wrappers and fresh validation are
+  more important than re-tuning ensemble routers on the same score dumps.
 
 ## Installation
 
