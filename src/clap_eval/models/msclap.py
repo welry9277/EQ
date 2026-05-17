@@ -69,7 +69,7 @@ class MSCLAPModel(BaseClapModel):
                 preprocessed_text = {k: v.to(self.device) if hasattr(v, 'to') else v for k, v in preprocessed_text.items()}
             
         embeddings = self.model.clap.caption_encoder(preprocessed_text)
-        
-        if isinstance(embeddings, torch.Tensor):
-            embeddings = embeddings.cpu().numpy()
-        return embeddings
+        if not isinstance(embeddings, torch.Tensor):
+            embeddings = torch.as_tensor(embeddings)
+        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=-1)
+        return embeddings.cpu().numpy()

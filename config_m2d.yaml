@@ -26,4 +26,6 @@ models:
     repo_type: dataset
   name: m2d
   repo_path: models_third_party/m2d
+  # Folder name from the M2D-CLAP release zip (PortableM2D reads architecture from it).
+  m2d_weight_folder_name: m2d_clap_vit_base-80x1001p16x16p16kpBpTI-2025
   type: local
