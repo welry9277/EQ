@@ -12,7 +12,7 @@ Query types: `key_phrase`, `statement`, `question`, `command`, `indirect`, `full
 
 [![EQ Dataset](https://img.shields.io/badge/HuggingFace-EQ%20Dataset-yellow?logo=huggingface)](https://huggingface.co/datasets/msnowchanj/EQ)
 [![CORA Experiments](https://img.shields.io/badge/GitHub-CORA%20Experiments-181717?logo=github)](https://github.com/EMNLP-2026/emnlp2026-CORA-diagnosis)
-
+[![Paper](https://img.shields.io/badge/Paper-Google%20Docs- blue?logo=goauthentik)](https://docs.google.com/document/d/16uvxyb-CTYksIGxQiB4Y6OsZYLhsZhOe/edit?usp=sharing&ouid=103099717435348800308&rtpof=true&sd=true)
 The generated EQ dataset is available on Hugging Face. This project was later extended into **CORA**, a follow-up study submitted to EMNLP 2026.
 
 ## Installation
