@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EQ — Extended Query Generation for Audio Retrieval</title>
+  <meta name="description" content="LLM-based toolkit for generating Extended Query (EQ) data for text-to-audio retrieval evaluation across AudioCaps, Clotho, and MeCAT." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text2: #8b949e;
+      --accent: #58a6ff;
+      --accent2: #79c0ff;
+      --green: #3fb950;
+      --purple: #bc8cff;
+      --orange: #ffa657;
+      --pink: #f78166;
+      --yellow: #e3b341;
+      --teal: #39d353;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a {
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 6rem 2rem 5rem;
+      text-align: center;
+    }
+    .hero-glow {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(88,166,255,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 50%, rgba(188,140,255,.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(88,166,255,.12);
+      border: 1px solid rgba(88,166,255,.3);
+      color: var(--accent2);
+      border-radius: 999px;
+      padding: 0.3rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-desc {
+      max-width: 620px;
+      margin: 0 auto 2.5rem;
+      color: var(--text2);
+      font-size: 1.1rem;
+      line-height: 1.7;
+    }
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-radius: 8px;
+      padding: 0.65rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+    }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+
+    /* ── SECTION ── */
+    section { max-width: 1100px; margin: 0 auto; padding: 5rem 2rem; }
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      color: var(--text2);
+      font-size: 1rem;
+      max-width: 600px;
+      margin-bottom: 3rem;
+      line-height: 1.7;
+    }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* ── QUERY TYPES ── */
+    .qt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    .qt-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .qt-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .qt-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .qt-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .qt-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .qt-desc {
+      font-size: 0.8rem;
+      color: var(--text2);
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+    .qt-example {
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.82rem;
+      color: var(--text2);
+      line-height: 1.5;
+    }
+    .qt-example em {
+      font-style: normal;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── SOURCE CAPTION BOX ── */
+    .caption-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .caption-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .caption-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 0.25rem;
+    }
+    .caption-text {
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── PIPELINE ── */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .pipe-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+      padding: 1.5rem 0;
+      position: relative;
+    }
+    .pipe-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 60px;
+      bottom: -16px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--border), transparent);
+    }
+    .pipe-num {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      border: 2px solid;
+    }
+    .pipe-body h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .pipe-body p {
+      font-size: 0.875rem;
+      color: var(--text2);
+      line-height: 1.6;
+      max-width: 580px;
+    }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text2);
+      font-weight: 500;
+    }
+
+    /* ── MODELS & DATASETS ── */
+    .md-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    @media (max-width: 640px) { .md-grid { grid-template-columns: 1fr; } }
+    .md-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .md-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tag-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ── CODE BLOCK ── */
+    .code-tabs { display: flex; gap: 0; margin-bottom: 0; }
+    .code-tab {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      color: var(--text2);
+      border-radius: 8px 8px 0 0;
+      margin-right: 4px;
+      transition: all 0.15s;
+    }
+    .code-tab.active { background: var(--bg2); color: var(--text); border-color: var(--border); }
+    .code-panel {
+      display: none;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 0 8px 8px 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .code-panel.active { display: block; }
+    .code-panel pre {
+      padding: 1.5rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 6px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+    /* syntax colors */
+    .kw { color: #ff7b72; }
+    .str { color: #a5d6ff; }
+    .cmt { color: #8b949e; }
+    .fn { color: #d2a8ff; }
+    .num { color: #79c0ff; }
+    .key { color: #7ee787; }
+    .op  { color: #ff7b72; }
+
+    /* ── SCHEMA ── */
+    .schema-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .schema-box pre {
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      color: var(--text2);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem; }
+
+    /* ── ICON SVG helpers ── */
+    .icon { width: 1em; height: 1em; vertical-align: middle; fill: currentColor; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 4rem 1.5rem 3.5rem; }
+      section { padding: 3.5rem 1.5rem; }
+      nav { padding: 0 1rem; }
+      .nav-links { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">EQ</a>
+  <ul class="nav-links">
+    <li><a href="#query-types">Query Types</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#quickstart">Quick Start</a></li>
+    <li><a href="https://github.com/welry9277/EQ" target="_blank">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">
+    <svg class="icon" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    Open Source
+  </div>
+  <h1>Extended Query<br/><span>Generation for Audio</span></h1>
+  <p class="hero-desc">
+    LLM-powered pipeline that generates six expressive query variants per audio clip —
+    then evaluates text-to-audio retrieval across four CLAP models.
+  </p>
+  <div class="hero-buttons">
+    <a class="btn btn-primary" href="#quickstart">
+      <svg class="icon" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.5 7.5l-5 3a.5.5 0 01-.5-.87V6.37a.5.5 0 01.5-.87l5 3a.5.5 0 010 .87v-.37z"/></svg>
+      Get Started
+    </a>
+    <a class="btn btn-secondary" href="https://github.com/welry9277/EQ" target="_blank">
+      <svg class="icon" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+    <a class="btn btn-secondary" href="https://huggingface.co/datasets/msnowchanj/EQ" target="_blank">
+      🤗 Dataset
+    </a>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- STATS -->
+<section style="padding-bottom: 0;">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num">6</div>
+      <div class="stat-label">Query Variants per Clip</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">4</div>
+      <div class="stat-label">CLAP Models Supported</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Datasets (AudioCaps, Clotho, MeCAT)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">R@K</div>
+      <div class="stat-label">Recall@1/5/10 Evaluation</div>
+    </div>
+  </div>
+</section>
+
+<!-- QUERY TYPES -->
+<section id="query-types">
+  <div class="section-label">Query Types</div>
+  <h2>Six Query Variants per Audio Clip</h2>
+  <p class="section-sub">
+    Given an audio clip's human captions, EQ generates six semantically distinct
+    query forms using GPT — from terse key phrases to indirect descriptions.
+  </p>
+
+  <!-- source caption example -->
+  <div class="caption-box">
+    <div class="caption-icon">🎵</div>
+    <div>
+      <div class="caption-label">Source Caption (middle caption)</div>
+      <div class="caption-text">"Rain pattering on metal while thunder rumbles in the distance"</div>
+    </div>
+  </div>
+
+  <div class="qt-grid">
+    <div class="qt-card">
+      <div class="qt-header">
+        <div class="qt-dot" style="background:#58a6ff"></div>
+        <span class="qt-name">key_phrase</span>
+      </div>
+      <div class="qt-desc">Compact noun-phrase label — good for keyword-based retrieval systems.</div>
+      <div class="qt-example"><em>Rain pattering on metal with distant thunder</em></div>
+    </div>
+
+    <div class="qt-card">
+      <div class="qt-header">
+        <div class="qt-dot" style="background:#3fb950"></div>
+        <span class="qt-name">statement</span>
+      </div>
+      <div class="qt-desc">Descriptive third-person sentence — closest to natural language search.</div>
+      <div class="qt-example"><em>There is the sound of rain pattering on metal while thunder rumbles in the distance.</em></div>
+    </div>
+
+    <div class="qt-card">
+      <div class="qt-header">
+        <div class="qt-dot" style="background:#e3b341"></div>
+        <span class="qt-name">question</span>
+      </div>
+      <div class="qt-desc">Interrogative form — mimics a user asking a search engine.</div>
+      <div class="qt-example"><em>Can you find a recording of rain pattering on metal while thunder rumbles in the distance?</em></div>
+    </div>
+
+    <div class="qt-card">
+      <div class="qt-header">
+        <div class="qt-dot" style="background:#ffa657"></div>
+        <span class="qt-name">command</span>
+      </div>
+      <div class="qt-desc">Imperative retrieval command — tests instruction-following in audio search.</div>
+      <div class="qt-example"><em>Search for a recording of rain pattering on metal while thunder rumbles in the distance.</em></div>
+    </div>
+
+    <div class="qt-card">
+      <div class="qt-header">
+        <div class="qt-dot" style="background:#bc8cff"></div>
+        <span class="qt-name">indirect</span>
+      </div>
+      <div class="qt-desc">Paraphrased, contextual description — tests semantic generalization.</div>
+      <div class="qt-example"><em>I'm looking for outdoor recordings featuring persistent precipitation against a hard surface with faint storm sounds.</em></div>
+    </div>
+
+    <div class="qt-card">
+      <div class="qt-header">
+        <div class="qt-dot" style="background:#f78166"></div>
+        <span class="qt-name">full_caption</span>
+      </div>
+      <div class="qt-desc">Synthesized caption from the full set of human annotations for the clip.</div>
+      <div class="qt-example"><em>Steady rain is falling and pattering on a metal surface during a storm, while faint thunder rumbles in the distance.</em></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- PIPELINE -->
+<section id="pipeline">
+  <div class="section-label">Pipeline</div>
+  <h2>End-to-End Workflow</h2>
+  <p class="section-sub">
+    From raw dataset captions to Recall@K retrieval metrics in four steps.
+  </p>
+
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num" style="color:#58a6ff;border-color:#58a6ff;background:rgba(88,166,255,.1)">1</div>
+      <div class="pipe-body">
+        <h3>Prepare Captions</h3>
+        <p>Download AudioCaps / Clotho CSVs, or place MeCAT JSON files manually.
+           The loader groups multiple human captions per clip and picks the middle caption as the generation anchor.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num" style="color:#3fb950;border-color:#3fb950;background:rgba(63,185,80,.1)">2</div>
+      <div class="pipe-body">
+        <h3>Generate EQ Variants</h3>
+        <p>Run <code style="background:var(--bg3);padding:.1rem .35rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.85em">scripts/makeeq.py</code>
+           to call the GPT API and produce six <code style="background:var(--bg3);padding:.1rem .35rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.85em">eq_*.jsonl</code>
+           files per query type, validated and logged automatically.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num" style="color:#e3b341;border-color:#e3b341;background:rgba(227,179,65,.1)">3</div>
+      <div class="pipe-body">
+        <h3>Extract Embeddings</h3>
+        <p>Run <code style="background:var(--bg3);padding:.1rem .35rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.85em">scripts/eval_pipeline.py</code>
+           to extract audio, source-text, and generated-text embeddings with LAION CLAP, MGA-CLAP, MS-CLAP, or M2D — then merge into one file per model.</p>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num" style="color:#bc8cff;border-color:#bc8cff;background:rgba(188,140,255,.1)">4</div>
+      <div class="pipe-body">
+        <h3>Evaluate &amp; Plot</h3>
+        <p>Compute text-to-audio Recall@1/5/10 for each query pool and generate
+           model-wise bar plots — comparing how each query type performs across models.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- DATASETS & MODELS -->
+<section id="models">
+  <div class="section-label">Supported</div>
+  <h2>Datasets &amp; CLAP Models</h2>
+  <p class="section-sub">Works with three widely-used audio captioning datasets and four state-of-the-art CLAP models.</p>
+
+  <div class="md-grid">
+    <div class="md-card">
+      <h3>📂 Datasets</h3>
+      <div class="tag-list">
+        <span class="tag"><span class="tag-dot" style="background:#58a6ff"></span>AudioCaps</span>
+        <span class="tag"><span class="tag-dot" style="background:#3fb950"></span>Clotho</span>
+        <span class="tag"><span class="tag-dot" style="background:#ffa657"></span>MeCAT</span>
+      </div>
+    </div>
+    <div class="md-card">
+      <h3>🤖 CLAP Models</h3>
+      <div class="tag-list">
+        <span class="tag"><span class="tag-dot" style="background:#58a6ff"></span>LAION CLAP</span>
+        <span class="tag"><span class="tag-dot" style="background:#bc8cff"></span>MGA-CLAP</span>
+        <span class="tag"><span class="tag-dot" style="background:#3fb950"></span>MS-CLAP</span>
+        <span class="tag"><span class="tag-dot" style="background:#e3b341"></span>M2D</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <div class="section-label">Quick Start</div>
+  <h2>Get Running in Minutes</h2>
+  <p class="section-sub">Requires Python ≥ 3.9, <a href="https://docs.astral.sh/uv/" target="_blank" style="color:var(--accent)">uv</a>, and an OpenAI API key.</p>
+
+  <div class="code-tabs">
+    <div class="code-tab active" onclick="switchTab('install')">Install</div>
+    <div class="code-tab" onclick="switchTab('generate')">Generate EQ</div>
+    <div class="code-tab" onclick="switchTab('evaluate')">Evaluate</div>
+  </div>
+
+  <div id="tab-install" class="code-panel active">
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    <pre><span class="cmt"># Clone the repo</span>
+git clone https://github.com/welry9277/EQ.git
+<span class="kw">cd</span> EQ
+
+<span class="cmt"># Install dependencies with uv</span>
+uv sync --frozen
+
+<span class="cmt"># Set your OpenAI API key</span>
+<span class="kw">cp</span> .env.example .env
+<span class="cmt"># Edit .env → OPENAI_API_KEY=sk-...</span>
+
+<span class="cmt"># Prepare input data (downloads AudioCaps CSVs)</span>
+uv run python scripts/prepare_data.py --dataset audiocaps</pre>
+  </div>
+
+  <div id="tab-generate" class="code-panel">
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    <pre><span class="cmt"># Generate all 6 EQ variants for AudioCaps test split</span>
+uv run python scripts/makeeq.py \
+  --dataset audiocaps \
+  --captions-csv input/audiocaps/test.csv \
+  --output-dir results/eq/audiocaps_test \
+  --split test
+
+<span class="cmt"># Merge the 6 per-type files into one file per clip</span>
+uv run python scripts/merge_eq_by_clip.py \
+  --input-dir results/eq/audiocaps_test</pre>
+  </div>
+
+  <div id="tab-evaluate" class="code-panel">
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    <pre><span class="cmt"># Extract embeddings for all models and merge</span>
+uv run python scripts/eval_pipeline.py \
+  --config config.yaml \
+  --dataset clotho
+
+<span class="cmt"># Compute Recall@1/5/10 for all query pools</span>
+uv run python scripts/eval_text_to_audio_retrieval.py
+
+<span class="cmt"># Generate bar chart</span>
+uv run python scripts/eval_plot_text_to_audio_recall.py</pre>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- OUTPUT SCHEMA -->
+<section id="schema">
+  <div class="section-label">Output Format</div>
+  <h2>JSONL Output Schema</h2>
+  <p class="section-sub">Each line in the generated <code style="font-family:'JetBrains Mono',monospace;color:var(--accent)">eq_*.jsonl</code> files follows this structure.</p>
+
+  <div class="schema-box">
+    <pre>{
+  <span class="key">"audio_id"</span>:           <span class="str">"4LLWZCuGfgk_26"</span>,
+  <span class="key">"dataset"</span>:            <span class="str">"audiocaps"</span>,
+  <span class="key">"dataset_slug"</span>:       <span class="str">"audiocaps_test"</span>,
+  <span class="key">"query_type"</span>:         <span class="str">"statement"</span>,
+  <span class="key">"generated_query"</span>:    <span class="str">"Water is running and gurgling with a splashing sound."</span>,
+  <span class="key">"original_captions"</span>:  [<span class="str">"Water is running, gurgling and splashing"</span>],
+  <span class="key">"metadata"</span>: {
+    <span class="key">"split"</span>:               <span class="str">"test"</span>,
+    <span class="key">"eq_reference"</span>:        <span class="str">"middle_caption"</span>,
+    <span class="key">"middle_caption_index"</span>: <span class="num">2</span>,
+    <span class="key">"full_caption_count"</span>:  <span class="num">5</span>
+  },
+  <span class="key">"source_model"</span>:       <span class="str">"gpt-4o-mini"</span>,
+  <span class="key">"regen_model"</span>:        <span class="str">"gpt-4o-mini"</span>
+}</pre>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>Released under the <a href="https://github.com/welry9277/EQ/blob/main/LICENSE">MIT License</a>.</div>
+  <div class="footer-links">
+    <a href="https://github.com/welry9277/EQ">GitHub Repository</a>
+    <a href="https://huggingface.co/datasets/msnowchanj/EQ">HuggingFace Dataset</a>
+    <a href="https://github.com/welry9277/EQ/blob/main/README.md">Documentation</a>
+  </div>
+</footer>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.code-tab').forEach((t, i) => {
+      const panels = ['install', 'generate', 'evaluate'];
+      t.classList.toggle('active', panels[i] === name);
+    });
+    document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  function copyCode(btn) {
+    const pre = btn.nextElementSibling;
+    const text = pre.innerText || pre.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>

@@ -21,7 +21,6 @@ eval.jsonl
 # Build
 dist/
 build/
-docs/
 *.egg-info/
 
 # Caches
