@@ -7,36 +7,35 @@ venv/
 env/
 /.env
 
-# Projects
+# Data & pipeline outputs (create locally; not tracked)
 input/
+output/
 results/
 temp/
 
-# Third party models & checkpoints
+# Third-party models & checkpoints
 models_third_party/
 checkpoints/
 eval.jsonl
 
-# UV / Hatch
+# Build
 dist/
 build/
 docs/
 *.egg-info/
 
-# Jupyter & Caches
+# Caches
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# PyPI configuration file
+# Tools
 .pypirc
+.codex
 
 # Cursor
-#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
-#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
-#  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
 
@@ -45,17 +44,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# EQ pipeline data 
-results/eq/mecat_test/eq_command.jsonl
-results/eq/mecat_test/eq_full_caption.jsonl
-results/eq/mecat_test/eq_indirect.jsonl
-results/eq/mecat_test/eq_question.jsonl
-results/eq/mecat_test/eq_statement.jsonl
-results/eq/mecat_test/eq_validation.log
-
+# MeCAT audio (large binary; download separately)
 input/mecat/flac_files/
 input/mecat/json_files/
-# Codex config
-.codex
-input/mecat/flac_files.zip
 input/mecat/*.zip

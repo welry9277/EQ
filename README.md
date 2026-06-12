@@ -1,26 +1,12 @@
 # EQ Generation Pipeline
 
-> Temporary status note, 2026-05-14:
-> This README describes the current EQ generation pipeline and data contract.
-> Generated-query analyses and downstream paper directions are provisional until
-> the target split, prompt templates, and human/fresh validation protocol are
-> frozen.
+LLM-based toolkit for generating **EQ** (Extended Query) data for audio retrieval from an AudioCaps-style caption CSV or MeCAT JSON captions. Outputs are validated and saved as JSONL.
 
-LLM-based toolkit for generating `EQ` (Extended Query) data for audio retrieval from an **AudioCaps-style caption CSV** or **MeCAT JSON captions**. Outputs are validated and saved as JSONL.
+## Project Overview
 
-## Project Role
+`EQ` generates six expressive query variants per audio clip from AudioCaps, Clotho, or MeCAT captions, and evaluates how well each variant retrieves its corresponding audio with four CLAP models (LAION, MGA, MS-CLAP, M2D).
 
-`EQ` is the dataset-generation source for expressive audio retrieval queries. It
-creates key phrase, statement, question, command, indirect, and full-caption
-variants from AudioCaps/Clotho/MECAT-style captions.
-
-Current temporary interpretation:
-
-- Use this project to create controlled, fresh, or human-verified EQ splits.
-- Existing downstream results depend on the exact generated query text and split
-  construction, so they should not be treated as fixed claims.
-- For the next paper direction, controlled EQ wrappers and fresh validation are
-  more important than re-tuning ensemble routers on the same score dumps.
+Query types: `key_phrase`, `statement`, `question`, `command`, `indirect`, `full_caption`.
 
 ## Installation
 
@@ -33,8 +19,8 @@ Requirements:
 Clone and install:
 
 ```bash
-git clone <your-fork-or-upstream-url>
-cd UIQ
+git clone https://github.com/welry9277/EQ.git
+cd EQ
 uv sync --frozen
 ```
 
@@ -50,12 +36,12 @@ Create a `.env` file in the project root:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-Default model settings live in [`config.yaml`](config.yaml):
+Default model settings live in [`config.yaml`](config.yaml) under the `model` key:
 
 ```yaml
 model:
-  source_model: gpt-5.4-mini
-  regen_model: gpt-5.4-mini
+  source_model: gpt-4o-mini
+  regen_model: gpt-4o-mini
   backend: gpt
   temperature: 0.7
   batch_size: 10
@@ -337,14 +323,42 @@ The `original` pool uses the original caption as the query. The other pools use 
 ## Repository Layout
 
 ```text
-repo/
-├── config.yaml
-├── eq_generation/
+EQ/
+├── config.yaml                   # EQ generation + CLAP eval settings
+├── config_laion.yaml             # LAION-only eval config
+├── config_msclap.yaml            # MS-CLAP-only eval config
+├── config_mga.yaml               # MGA-CLAP-only eval config
+├── config_m2d.yaml               # M2D-only eval config
+├── eq_generation/                # EQ generation package
+│   ├── __init__.py
+│   ├── data.py
+│   ├── query_types.py
+│   └── generators/
+│       ├── base.py
+│       ├── factory.py
+│       ├── gpt_generator.py
+│       └── prompts.py
+├── src/clap_eval/models/         # CLAP model wrappers
+│   ├── base.py
+│   ├── laion.py
+│   ├── mga.py
+│   ├── m2d.py
+│   └── msclap.py
 ├── scripts/
+│   ├── makeeq.py                 # Main EQ generation script
 │   ├── prepare_data.py
 │   ├── download_audiocaps_hf.py
 │   ├── merge_audiocaps_captions.py
 │   ├── merge_eq_by_clip.py
-│   └── makeeq.py
-└── results/
+│   ├── eval_pipeline.py          # Orchestrate all eval steps
+│   ├── eval_extract_audio_embeddings.py
+│   ├── eval_extract_source_text_embeddings.py
+│   ├── eval_extract_generated_text_embeddings.py
+│   ├── eval_merge_embeddings.py
+│   ├── eval_text_to_audio_retrieval.py
+│   └── eval_plot_text_to_audio_recall.py
+└── input/                        # Not tracked by git; create locally
+    ├── audiocaps/
+    ├── clotho/
+    └── mecat/
 ```

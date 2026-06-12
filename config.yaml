@@ -1,3 +1,17 @@
+# ---------------------------------------------------------------------------
+# EQ generation settings (used by scripts/makeeq.py)
+# ---------------------------------------------------------------------------
+model:
+  source_model: gpt-4o-mini
+  regen_model: gpt-4o-mini
+  backend: gpt
+  temperature: 0.7
+  batch_size: 10
+  max_tokens: 100
+
+# ---------------------------------------------------------------------------
+# CLAP retrieval evaluation settings (used by scripts/eval_*.py)
+# ---------------------------------------------------------------------------
 dataset:
   name: "VGGSound"
   hf_repo: "txya900619/vggsound-16k"
