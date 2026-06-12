@@ -1,12 +1,19 @@
 # EQ Generation Pipeline
 
-LLM-based toolkit for generating **EQ** (Extended Query) data for audio retrieval from an AudioCaps-style caption CSV or MeCAT JSON captions. Outputs are validated and saved as JSONL.
+LLM-based toolkit for generating **EQ** (Extended Query) data for text-to-audio retrieval from AudioCaps-style caption CSVs or MeCAT JSON captions. Outputs are validated and saved as JSONL.
 
 ## Project Overview
 
-`EQ` generates six expressive query variants per audio clip from AudioCaps, Clotho, or MeCAT captions, and evaluates how well each variant retrieves its corresponding audio with four CLAP models (LAION, MGA, MS-CLAP, M2D).
+`EQ` generates six expressive query variants per audio clip from AudioCaps, Clotho, or MeCAT captions, then evaluates how well each variant retrieves its corresponding audio with four CLAP-family models: LAION, MGA, MS-CLAP, and M2D.
 
 Query types: `key_phrase`, `statement`, `question`, `command`, `indirect`, `full_caption`.
+
+## Dataset and Follow-up Work
+
+[![EQ Dataset](https://img.shields.io/badge/HuggingFace-EQ%20Dataset-yellow?logo=huggingface)](https://huggingface.co/datasets/msnowchanj/EQ)
+[![CORA Experiments](https://img.shields.io/badge/GitHub-CORA%20Experiments-181717?logo=github)](https://github.com/EMNLP-2026/emnlp2026-CORA-diagnosis)
+
+The generated EQ dataset is available on Hugging Face. This project was later extended into **CORA**, a follow-up study submitted to EMNLP 2026.
 
 ## Installation
 
@@ -51,34 +58,34 @@ model:
 ## Data Preparation
 
 Use [`scripts/prepare_data.py`](scripts/prepare_data.py) to create input directories and download supported metadata:
-- `clotho`: downloads offical `*_evaluation`(3 datasets) from [clotho](https://zenodo.org/records/3490684)
 
+- `clotho`: downloads official `*_evaluation` metadata from [Clotho](https://zenodo.org/records/3490684)
 - `audiocaps`: downloads official `train.csv`, `val.csv`, and `test.csv` into `input/audiocaps/` from [cdjkim/audiocaps](https://github.com/cdjkim/audiocaps/tree/master/dataset)
 - `mecat`: creates `input/mecat/json_files/` for manual placement
 
-### MeCAT 파일 준비
+### Preparing MeCAT files
 
-MeCAT은 자동 다운로드를 지원하지 않습니다. GitHub에 올려둔 ZIP 파일을 받아 `input/mecat/` 아래에 두고 압축을 해제하면 됩니다.
+MeCAT is not downloaded automatically. Download the ZIP files from GitHub, place them under `input/mecat/`, and extract them there.
 
-예시:
+Example:
 
 ```bash
 mkdir -p input/mecat
 
-# GitHub에서 받은 ZIP들을 input/mecat/ 아래에 둔 뒤
+# After placing the downloaded ZIP files under input/mecat/
 mv ~/Downloads/json_files.zip input/mecat/json_files.zip
 mv ~/Downloads/flac_files.zip input/mecat/flac_files.zip
 
-# unzip이 있으면
+# With unzip
 unzip input/mecat/json_files.zip -d input/mecat/
 unzip input/mecat/flac_files.zip -d input/mecat/
 
-# unzip이 없는 환경이면 python으로
+# Without unzip, use Python
 python3 -c "import zipfile; zipfile.ZipFile('input/mecat/json_files.zip').extractall('input/mecat/')"
 python3 -c "import zipfile; zipfile.ZipFile('input/mecat/flac_files.zip').extractall('input/mecat/')"
 ```
 
-압축을 `input/mecat/` 바로 아래에 풀었다면, `.json`과 `.flac`를 각각 폴더로 분리합니다:
+If extraction places `.json` and `.flac` files directly under `input/mecat/`, move them into separate directories:
 
 ```bash
 mkdir -p input/mecat/json_files input/mecat/flac_files
@@ -86,7 +93,7 @@ find input/mecat -maxdepth 1 -type f -name '*.json' -exec mv -t input/mecat/json
 find input/mecat -maxdepth 1 -type f -name '*.flac' -exec mv -t input/mecat/flac_files {} +
 ```
 
-정리 후에는 아래 구조가 되면 됩니다:
+After cleanup, the directory should look like this:
 
 ```text
 input/mecat/
@@ -102,13 +109,13 @@ input/mecat/
     └── ...
 ```
 
-`makeeq.py`는 `input/mecat/json_files/` 안의 각 JSON에서 `short` 필드를 읽어 사용합니다.
+`makeeq.py` reads the `short` field from each JSON file in `input/mecat/json_files/`.
 
 ### AudioCaps via Hugging Face (`datasets`)
 
 For **official** train/val/test caption CSVs from the paper repo, use `prepare_data.py --dataset audiocaps` (no `datasets` install required).
 
-The snippet below is **[Hugging Face Hub](https://huggingface.co/datasets)** + the [`datasets`](https://huggingface.co/docs/datasets) library. The repo id **`d0rj/audiocaps`** is a mirror of **AudioCaps**, not Clotho. (Clotho is a different dataset; use `prepare_data.py --dataset clotho` or another Hub id for Clotho.)
+The snippet below uses the **[Hugging Face Hub](https://huggingface.co/datasets)** and the [`datasets`](https://huggingface.co/docs/datasets) library. The repository ID **`d0rj/audiocaps`** is a mirror of **AudioCaps**, not Clotho. Clotho is a different dataset; use `prepare_data.py --dataset clotho` or another Hub ID for Clotho.
 
 After `uv sync --extra hf`, export a split to the same CSV columns `makeeq` expects (`youtube_id`, `start_time`, `caption`):
 
@@ -118,9 +125,9 @@ After `uv sync --extra hf`, export a split to the same CSV columns `makeeq` expe
 
 Splits on the Hub are named `train`, `validation`, and `test`.
 
-### One row per clip (merged captions)
+### One row per clip
 
-Official CSVs have several caption lines per `(youtube_id, start_time)`. To collapse them into a single row (first `audiocap_id`, captions joined with ` | ` by default):
+Official CSVs can contain several caption lines per `(youtube_id, start_time)`. To collapse them into a single row, keeping the first `audiocap_id` and joining captions with ` | ` by default:
 
 ```bash
 # Defaults: input/audiocaps/test.csv -> input/audiocaps/test_merged.csv
@@ -131,7 +138,7 @@ Official CSVs have several caption lines per `(youtube_id, start_time)`. To coll
   --output input/audiocaps/val_merged.csv
 ```
 
-Use `--separator` to change the join string. Note: `makeeq` already groups by clip when reading multi-row CSVs; merging is for tools that need one row per clip.
+Use `--separator` to change the join string. Note that `makeeq` already groups by clip when reading multi-row CSVs; merging is only needed for tools that require one row per clip.
 
 ## EQ Query Types
 
@@ -144,8 +151,10 @@ The pipeline generates six variants per clip:
 - `indirect`
 - `full_caption`
 
-- **`full_caption`**: prompted with the **full caption list** for the clip; `original_captions` in JSONL is that full list.
-- **`key_phrase`, `statement`, `question`, `command`, `indirect`**: prompted with the **middle caption only** (index `len // 2`); `original_captions` is a one-element list with that string. Metadata adds `eq_reference`, `middle_caption_index`, and `full_caption_count`.
+Generation behavior:
+
+- **`full_caption`**: prompted with the **full caption list** for the clip; `original_captions` in JSONL stores that full list.
+- **`key_phrase`, `statement`, `question`, `command`, `indirect`**: prompted with the **middle caption only** (index `len // 2`); `original_captions` is a one-element list containing that caption. Metadata adds `eq_reference`, `middle_caption_index`, and `full_caption_count`.
 - **MeCAT**: the loader uses the JSON `short` field as the caption list. That means `full_caption` uses all `short` captions, and every other query type uses only the middle `short` caption.
 
 ## Generate EQ
@@ -174,7 +183,7 @@ Optional arguments:
 
 - `--dataset`: original dataset source to convert
 - `--split`: split label stored in metadata, default `test`
-- `--num-queries`: cap number of clips (order after grouping)
+- `--num-queries`: cap the number of clips after grouping
 - `--config`: custom config file
 
 Generated files:
@@ -190,7 +199,7 @@ Validation logs are written to `eq_validation.log`.
 
 ### Merge EQ types per clip (one file)
 
-After generation, to combine the six `eq_*.jsonl` files into **one record per `audio_id`** with `original_captions` and all six strings under `generated_queries`:
+After generation, combine the six `eq_*.jsonl` files into **one record per `audio_id`** with `original_captions` and all six strings under `generated_queries`:
 
 ```bash
 ./scripts/merge_eq_by_clip.py --input-dir results/eq/test_sample5
@@ -210,14 +219,14 @@ Each JSONL line follows this shape:
   "generated_query": "...",
   "original_captions": ["..."],
   "metadata": {},
-  "source_model": "gpt-5.4-mini",
-  "regen_model": "gpt-5.4-mini"
+  "source_model": "...",
+  "regen_model": "..."
 }
 ```
 
 ## Text-to-Audio Retrieval Evaluation
 
-This evaluation uses a dataset caption JSONL and audio files to build audio/text embeddings for each model, then computes text-to-audio retrieval performance. The scripts default to `clotho`, and the same workflow can be reused for another dataset such as `mecats` by passing `--dataset mecats`.
+This evaluation uses a caption JSONL and audio files to build audio and text embeddings for each model, then computes text-to-audio retrieval performance. The scripts default to `clotho`, and the same workflow can be reused for another dataset such as `mecats` by passing `--dataset mecats`.
 
 This workflow reads the project `config*.yaml` files. Model paths, model IDs, enabled models, device, and default batch size come from `--config` (default: `config.yaml`). Dataset paths can come from the config when present, or from `--dataset` and explicit path arguments.
 
@@ -228,11 +237,11 @@ Default input paths for a dataset named `{dataset}`:
 - Caption JSONL: `input/captions/{dataset}/eq_by_clip.jsonl`
 - Audio directory: `input/{dataset}/audio`
 
-The caption JSONL should contain `audio_id`, `file_name`, the original caption, and generated query text. If `file_name` is empty, rows are merged by `audio_id`.
+The caption JSONL should contain `audio_id`, `file_name`, the original caption, and generated query text. If `file_name` is empty, rows are matched by `audio_id`.
 
 ### 2. Generate and merge embeddings
 
-Generate source text embeddings, generated text embeddings, and audio embeddings, then merge them into one `merged.jsonl` per model.
+Generate source text embeddings, generated text embeddings, and audio embeddings, then merge them into one `merged.jsonl` file per model.
 
 ```bash
 uv run python scripts/eval_pipeline.py
@@ -318,7 +327,7 @@ uv run python scripts/eval_plot_text_to_audio_recall.py \
 - `R@5`: the fraction of queries where the correct audio appears in the top 5
 - `R@10`: the fraction of queries where the correct audio appears in the top 10
 
-The `original` pool uses the original caption as the query. The other pools use different generated query text types. Comparing Recall across generated query pools helps identify which text formats are easier or harder for each model in audio retrieval.
+The `original` pool uses the original caption as the query. The other pools use different generated query types. Comparing Recall across generated query pools helps identify which text formats are easier or harder for each model in audio retrieval.
 
 ## Repository Layout
 
