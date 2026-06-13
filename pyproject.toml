@@ -18,7 +18,7 @@ dependencies = [
     "openai",
     "pandas",
     "python-dotenv",
-    "pyyaml>=6.0",
+    "pyyaml>=6.0.3",
     "resampy",
     "ruamel-yaml",
     "scikit-learn",
