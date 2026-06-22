@@ -30,7 +30,10 @@ jobs:
       - name: Ruff check
         uses: astral-sh/ruff-action@v3
         with:
-          args: "check eq_generation scripts src"
+          args: "check eq_generation scripts src tests"
 
       - name: Byte-compile
-        run: uv run python -m compileall -q eq_generation scripts src
+        run: uv run python -m compileall -q eq_generation scripts src tests
+
+      - name: Unit tests
+        run: uv run python -m unittest discover -s tests -v

@@ -93,7 +93,9 @@ def build_results_for_query_type(
     regen_model: str,
 ) -> list[QueryResult]:
     if query_type == QueryType.FULL_CAPTION:
-        prompts = [format_caption_set(entry["caption_set"]) for entry in prepared_entries]
+        prompts = [
+            format_caption_set(entry["caption_set"]) for entry in prepared_entries
+        ]
     else:
         prompts = [middle_caption(entry["caption_set"]) for entry in prepared_entries]
 
@@ -119,6 +121,8 @@ def build_results_for_query_type(
                 "middle_caption_index": len(caps) // 2 if caps else 0,
                 "full_caption_count": len(caps),
             }
+        if raw_result.metadata and raw_result.metadata.get("error"):
+            meta["error"] = raw_result.metadata["error"]
         results.append(
             QueryResult(
                 audio_id=entry["audio_id"],
@@ -140,6 +144,7 @@ def validate_outputs(
     prepared_entries: list[dict[str, Any]],
     outputs_by_type: dict[QueryType, list[QueryResult]],
     log_lines: list[str],
+    query_types: list[QueryType],
 ) -> None:
     counts = Counter()
     expected_by_audio_id = {entry["audio_id"]: entry for entry in prepared_entries}
@@ -154,6 +159,18 @@ def validate_outputs(
 
         for result in results:
             counts[result.audio_id] += 1
+            if not result.generated_query.strip():
+                append_log(
+                    log_lines,
+                    f"[ERROR] Empty generated_query for audio_id={result.audio_id} "
+                    f"in {query_type.value}.",
+                )
+            if result.metadata and result.metadata.get("error"):
+                append_log(
+                    log_lines,
+                    f"[ERROR] Generation failed for audio_id={result.audio_id} "
+                    f"in {query_type.value}: {result.metadata['error']}",
+                )
             expected_entry = expected_by_audio_id.get(result.audio_id)
             if expected_entry is None:
                 append_log(
@@ -176,11 +193,11 @@ def validate_outputs(
 
     for entry in prepared_entries:
         produced = counts[entry["audio_id"]]
-        if produced != len(EQ_QUERY_TYPES):
+        if produced != len(query_types):
             append_log(
                 log_lines,
                 f"[ERROR] audio_id={entry['audio_id']} produced {produced} outputs; "
-                f"expected {len(EQ_QUERY_TYPES)}.",
+                f"expected {len(query_types)}.",
             )
 
 
@@ -194,7 +211,7 @@ def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(
-        description="EQ generation from dataset captions or MECAT short-caption JSON files.",
+        description="Generate EQ data from AudioCaps, Clotho, or MeCAT captions.",
     )
     parser.add_argument(
         "--dataset",
@@ -207,20 +224,37 @@ def main() -> None:
         "--captions-path",
         dest="captions_path",
         required=True,
-        help="Path to the caption CSV, or a MECAT JSON directory when --dataset mecat.",
+        help="AudioCaps/Clotho caption CSV, or a MeCAT JSON file/directory.",
     )
-    parser.add_argument("--output-dir", required=True, help="Directory for per-type EQ JSONL files")
+    parser.add_argument(
+        "--output-dir", required=True, help="Directory for per-type EQ JSONL files"
+    )
     parser.add_argument(
         "--split",
-        default="test",
-        help="Split label stored in output metadata. Default: test",
+        default=None,
+        help="Split label stored in output metadata. Defaults to evaluation for Clotho and default for MeCAT.",
     )
     parser.add_argument(
         "--num-queries",
         type=int,
         help="Optional limit on clips (CSV / record order after grouping).",
     )
-    parser.add_argument("--config", type=str, default="config.yaml", help="Path to configuration file")
+    parser.add_argument(
+        "--query-types",
+        nargs="+",
+        choices=[query_type.value for query_type in EQ_QUERY_TYPES],
+        default=None,
+        help=(
+            "Query types to generate. AudioCaps defaults to full_caption only; "
+            "Clotho and MeCAT default to all six."
+        ),
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/config.yaml",
+        help="Path to configuration file",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -238,17 +272,26 @@ def main() -> None:
     log_lines: list[str] = []
     append_log(log_lines, f"[INFO] Loading records from {args.captions_path}")
     append_log(log_lines, f"[INFO] Using dataset loader: {args.dataset}")
-    if args.dataset == "clotho":
-        records = load_clotho(args.captions_path, split=args.split)
-    elif args.dataset == "mecat":
-        records = load_mecat(args.captions_path, split=args.split)
+    default_splits = {
+        "audiocaps": "test",
+        "clotho": "evaluation",
+        "mecat": "default",
+    }
+    split = args.split or default_splits[args.dataset]
+    if args.dataset == "audiocaps":
+        records = load_audiocaps(args.captions_path, split=split)
+    elif args.dataset == "clotho":
+        records = load_clotho(args.captions_path, split=split)
     else:
-        records = load_audiocaps(args.captions_path, split=args.split)
+        records = load_mecat(args.captions_path, split=split)
     append_log(log_lines, f"[INFO] Loaded {len(records)} unique audio_id groups")
 
     if args.num_queries is not None and len(records) > args.num_queries:
         records = records[: args.num_queries]
-        append_log(log_lines, f"[INFO] Limited to first {len(records)} clips via --num-queries.")
+        append_log(
+            log_lines,
+            f"[INFO] Limited to first {len(records)} clips via --num-queries.",
+        )
 
     prepared_entries = prepare_entries_from_records(records, log_lines)
     append_log(log_lines, f"[INFO] Prepared {len(prepared_entries)} entries.")
@@ -265,9 +308,19 @@ def main() -> None:
         temperature=temperature,
     )
 
+    if args.query_types:
+        query_types = [QueryType.from_string(value) for value in args.query_types]
+    elif args.dataset == "audiocaps":
+        query_types = [QueryType.FULL_CAPTION]
+    else:
+        query_types = EQ_QUERY_TYPES
+
     outputs_by_type: dict[QueryType, list[QueryResult]] = {}
-    for query_type in EQ_QUERY_TYPES:
-        append_log(log_lines, f"[INFO] Generating {query_type.value} for {len(prepared_entries)} entries")
+    for query_type in query_types:
+        append_log(
+            log_lines,
+            f"[INFO] Generating {query_type.value} for {len(prepared_entries)} entries",
+        )
         results = build_results_for_query_type(
             prepared_entries=prepared_entries,
             generator=generator,
@@ -276,19 +329,23 @@ def main() -> None:
             regen_model=regen_model,
         )
         outputs_by_type[query_type] = results
-        generator.save_results(results, output_dir / EQ_OUTPUT_FILENAMES[query_type], format="jsonl")
+        generator.save_results(
+            results, output_dir / EQ_OUTPUT_FILENAMES[query_type], format="jsonl"
+        )
 
-    validate_outputs(prepared_entries, outputs_by_type, log_lines)
+    validate_outputs(prepared_entries, outputs_by_type, log_lines, query_types)
 
     error_count = sum(1 for line in log_lines if line.startswith("[ERROR]"))
     if error_count:
-        append_log(log_lines, f"[ERROR] Validation finished with {error_count} error(s).")
+        append_log(
+            log_lines, f"[ERROR] Validation finished with {error_count} error(s)."
+        )
         log_path = write_validation_log(output_dir, log_lines)
         raise SystemExit(f"See validation log: {log_path}")
 
     append_log(
         log_lines,
-        f"[INFO] EQ generation complete. Produced {len(prepared_entries) * len(EQ_QUERY_TYPES)} outputs.",
+        f"[INFO] EQ generation complete. Produced {len(prepared_entries) * len(query_types)} outputs.",
     )
     log_path = write_validation_log(output_dir, log_lines)
     print(f"[INFO] Validation log saved to {log_path}")

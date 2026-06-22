@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 
 class QueryType(Enum):
@@ -14,7 +13,7 @@ class QueryType(Enum):
     FULL_CAPTION = "full_caption"
 
     @classmethod
-    def from_string(cls, value: str) -> "QueryType":
+    def from_string(cls, value: str) -> QueryType:
         for member in cls:
             if member.value == value.lower():
                 return member
@@ -29,7 +28,7 @@ class QueryResult:
     query_type: QueryType
     generated_query: str
     original_captions: list[str]
-    metadata: Optional[dict] = field(default_factory=dict)
+    metadata: dict | None = field(default_factory=dict)
     source_model: str = "gpt-5.4-mini"
     regen_model: str = "gpt-5.4-mini"
 

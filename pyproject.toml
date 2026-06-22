@@ -3,7 +3,7 @@ name = "eq"
 version = "0.1.0"
 description = "LLM-based toolkit for generating Extended Query (EQ) data for audio retrieval"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "accelerate",
     "datasets<4.0.0",
@@ -34,9 +34,6 @@ dependencies = [
     "transformers",
     "wandb",
 ]
-
-[project.optional-dependencies]
-hf = ["datasets"]
 
 [build-system]
 requires = ["hatchling"]
@@ -78,3 +75,6 @@ ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["eq_generation", "clap_eval"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = ["E402"]

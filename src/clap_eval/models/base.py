@@ -1,5 +1,7 @@
 import abc
+
 import numpy as np
+
 
 class BaseClapModel(abc.ABC):
     """

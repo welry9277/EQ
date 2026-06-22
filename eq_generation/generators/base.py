@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 from tqdm import tqdm
 
@@ -26,7 +26,7 @@ class BaseEQGenerator(ABC):
         self,
         caption: str,
         query_type: QueryType,
-        hard_negative_caption: Optional[str] = None,
+        hard_negative_caption: str | None = None,
     ) -> str:
         raise NotImplementedError
 
@@ -34,7 +34,7 @@ class BaseEQGenerator(ABC):
         self,
         captions: Sequence[str],
         query_type: QueryType,
-        clip_ids: Optional[Sequence[str]] = None,
+        clip_ids: Sequence[str] | None = None,
         show_progress: bool = True,
     ) -> list[QueryResult]:
         if clip_ids is None:
@@ -43,7 +43,9 @@ class BaseEQGenerator(ABC):
         results = []
         iterator = range(len(captions))
         if show_progress:
-            iterator = tqdm(iterator, desc=f"Generating {query_type.value}", unit="query")
+            iterator = tqdm(
+                iterator, desc=f"Generating {query_type.value}", unit="query"
+            )
 
         for index in iterator:
             try:
@@ -62,7 +64,9 @@ class BaseEQGenerator(ABC):
                     )
                 )
             except Exception as exc:
-                print(f"[WARN] Failed to generate query for clip {clip_ids[index]}: {exc}")
+                print(
+                    f"[WARN] Failed to generate query for clip {clip_ids[index]}: {exc}"
+                )
                 results.append(
                     QueryResult(
                         audio_id=clip_ids[index],

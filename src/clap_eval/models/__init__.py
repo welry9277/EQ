@@ -1,8 +1,9 @@
 from .base import BaseClapModel
 from .laion import LaionClapModel
-from .mga import MGAClapModel
 from .m2d import M2DClapModel
+from .mga import MGAClapModel
 from .msclap import MSCLAPModel
+
 
 def get_model(name: str, config: dict, device: str) -> BaseClapModel:
     if name.lower() == "laion":

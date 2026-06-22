@@ -16,7 +16,11 @@ os.environ.setdefault("MPLCONFIGDIR", str(PROJECT_ROOT / ".cache" / "matplotlib"
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scripts._eval_embed_common import get_enabled_model_configs, load_eval_config
+from scripts._eval_embed_common import (
+    DEFAULT_CONFIG_PATH,
+    get_enabled_model_configs,
+    load_eval_config,
+)
 
 DEFAULT_MODEL_ORDER = ("msclap", "laion", "mga", "m2d")
 DEFAULT_KS = (1, 5, 10)
@@ -35,13 +39,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--config",
-        default=str(PROJECT_ROOT / "config.yaml"),
+        default=str(DEFAULT_CONFIG_PATH),
         help="YAML config containing model and evaluation settings.",
     )
     parser.add_argument(
         "--dataset",
         default="clotho",
-        help="Dataset name used for default input/output paths, e.g. clotho or mecats.",
+        help="Dataset name used for default input/output paths: clotho or mecat.",
     )
     parser.add_argument(
         "--input",
@@ -78,11 +82,25 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     config = load_eval_config(args.config)
-    args.input = args.input or str(PROJECT_ROOT / "results" / "retrieval" / args.dataset / "text_to_audio_recall.json")
-    args.output = args.output or str(PROJECT_ROOT / "results" / "retrieval" / args.dataset / "text_to_audio_recall_bar.png")
+    args.input = args.input or str(
+        PROJECT_ROOT
+        / "results"
+        / "retrieval"
+        / args.dataset
+        / "text_to_audio_recall.json"
+    )
+    args.output = args.output or str(
+        PROJECT_ROOT
+        / "results"
+        / "retrieval"
+        / args.dataset
+        / "text_to_audio_recall_bar.png"
+    )
     args.dataset_label = args.dataset_label or args.dataset.upper()
     args.models = args.models or list(get_enabled_model_configs(config))
-    args.ks = args.ks or list(config.get("evaluation", {}).get("top_k_list", DEFAULT_KS))
+    args.ks = args.ks or list(
+        config.get("evaluation", {}).get("top_k_list", DEFAULT_KS)
+    )
     return args
 
 
@@ -114,7 +132,9 @@ def collect_scores(
         for k in ks:
             key = f"R@{k}"
             if key not in recall_map:
-                raise KeyError(f"Metric '{key}' not found for model '{model_name}' pool '{pool}'.")
+                raise KeyError(
+                    f"Metric '{key}' not found for model '{model_name}' pool '{pool}'."
+                )
             labels.append(f"{display_name}\nR@{k}")
             scores.append(float(recall_map[key]))
             series_names.append(key)
@@ -134,7 +154,9 @@ def plot_bar_chart(
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    color_map = {f"R@{k}": DEFAULT_COLORS[idx % len(DEFAULT_COLORS)] for idx, k in enumerate(ks)}
+    color_map = {
+        f"R@{k}": DEFAULT_COLORS[idx % len(DEFAULT_COLORS)] for idx, k in enumerate(ks)
+    }
     colors = [color_map[name] for name in series_names]
     intra_group_gap = 1.0
     inter_group_gap = 1.25
@@ -157,7 +179,7 @@ def plot_bar_chart(
 
     plt.style.use("seaborn-v0_8-whitegrid")
     fig, ax = plt.subplots(figsize=(12.5, 5.6))
-    bars = ax.bar(x, scores, color=colors, width=bar_width, edgecolor="none", linewidth=0)
+    ax.bar(x, scores, color=colors, width=bar_width, edgecolor="none", linewidth=0)
 
     legend_handles = [
         plt.Rectangle((0, 0), 1, 1, color=color_map[f"R@{k}"], label=f"Recall@{k}")

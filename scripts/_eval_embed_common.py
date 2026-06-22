@@ -2,21 +2,18 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "config.yaml"
 
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
-
-os.environ.setdefault("HF_DATASETS_CACHE", str(PROJECT_ROOT / "input" / "datasets"))
 
 
 def resolve_project_path(path_value: str | Path | None) -> str | None:
@@ -36,7 +33,9 @@ def load_eval_config(config_path: str | Path) -> dict[str, Any]:
         return yaml.safe_load(handle) or {}
 
 
-def get_enabled_model_configs(config: dict[str, Any], model_names: list[str] | None = None) -> dict[str, dict[str, Any]]:
+def get_enabled_model_configs(
+    config: dict[str, Any], model_names: list[str] | None = None
+) -> dict[str, dict[str, Any]]:
     selected_names = {name.lower() for name in model_names} if model_names else None
     model_configs: dict[str, dict[str, Any]] = {}
 
@@ -60,7 +59,9 @@ def get_enabled_model_configs(config: dict[str, Any], model_names: list[str] | N
     if selected_names is not None:
         missing = selected_names - set(model_configs)
         if missing:
-            raise ValueError(f"Model(s) not found or disabled in config: {', '.join(sorted(missing))}")
+            raise ValueError(
+                f"Model(s) not found or disabled in config: {', '.join(sorted(missing))}"
+            )
 
     if not model_configs:
         raise ValueError("No enabled models found in config.")
@@ -70,6 +71,21 @@ def get_enabled_model_configs(config: dict[str, Any], model_names: list[str] | N
 
 def get_execution_value(config: dict[str, Any], key: str, default: Any) -> Any:
     return config.get("execution", {}).get(key, default)
+
+
+def get_dataset_config(config: dict[str, Any], dataset: str) -> dict[str, Any]:
+    datasets = config.get("datasets", {})
+    if isinstance(datasets, dict):
+        selected = datasets.get(dataset, {})
+        if isinstance(selected, dict):
+            return selected
+
+    legacy = config.get("dataset", {})
+    if isinstance(legacy, dict):
+        legacy_name = str(legacy.get("name", "")).lower()
+        if not legacy_name or legacy_name == dataset.lower():
+            return legacy
+    return {}
 
 
 def resolve_device(requested: str) -> str:
@@ -124,7 +140,10 @@ def load_caption_rows(caption_jsonl: str | Path) -> list[dict[str, Any]]:
 def build_file_name_to_audio_id(caption_rows: list[dict[str, Any]]) -> dict[str, str]:
     mapping: dict[str, str] = {}
     for row in caption_rows:
-        file_name = str(row.get("metadata", {}).get("file_name", "")).strip()
+        metadata = row.get("metadata", {})
+        if not isinstance(metadata, dict):
+            metadata = {}
+        file_name = str(row.get("file_name") or metadata.get("file_name") or "").strip()
         audio_id = str(row.get("audio_id", "")).strip()
         if file_name and audio_id:
             mapping[file_name] = audio_id
