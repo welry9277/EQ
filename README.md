@@ -4,22 +4,21 @@ Generate Extended Query (EQ) variants from **AudioCaps**, **Clotho**, or **MeCAT
 
 The complete evaluation pipeline produces Recall@1, Recall@5, and Recall@10 from one command.
 
-[![EQ Dataset](https://img.shields.io/badge/HuggingFace-EQ%20Dataset-yellow?logo=huggingface)](https://huggingface.co/datasets/msnowchanj/EQ)
-[![CORA Experiments](https://img.shields.io/badge/GitHub-CORA%20Experiments-181717?logo=github)](https://github.com/EMNLP-2026/emnlp2026-CORA-diagnosis)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## What this repository does
+## Project overview
 
-For each audio clip, EQ generates:
+EQ generates six expressive query variants per audio clip from AudioCaps, Clotho, or MeCAT captions, then evaluates how well each variant retrieves its corresponding audio with four CLAP-family models: LAION, MGA, MS-CLAP, and M2D.
 
-- `key_phrase`
-- `statement`
-- `question`
-- `command`
-- `indirect`
-- `full_caption`
+Query types: `key_phrase`, `statement`, `question`, `command`, `indirect`, `full_caption`.
 
-It then evaluates the original caption and generated queries against the corresponding audio with LAION CLAP, MS-CLAP, MGA-CLAP, or M2D-CLAP.
+### Dataset and Follow-up Work
+
+[![EQ Dataset](https://img.shields.io/badge/HuggingFace-EQ%20Dataset-yellow?logo=huggingface)](https://huggingface.co/datasets/msnowchanj/EQ)
+[![CORA Experiments](https://img.shields.io/badge/GitHub-CORA%20Experiments-181717?logo=github)](https://github.com/EMNLP-2026/emnlp2026-CORA-diagnosis)
+[![Paper](https://img.shields.io/badge/Google%20Docs-Paper-4285F4?logo=googledocs&logoColor=white)](https://docs.google.com/document/d/16uvxyb-CTYksIGxQiB4Y6OsZYLhsZhOe)
+
+The generated EQ dataset is available on Hugging Face. This project was later extended into CORA, a follow-up study submitted to EMNLP 2026.
 
 ## Quick start
 
