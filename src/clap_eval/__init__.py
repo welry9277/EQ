@@ -1,4 +1,3 @@
-from .models import get_model
-from .models import BaseClapModel
+from .models import BaseClapModel, get_model
 
 __all__ = ["get_model", "BaseClapModel"]

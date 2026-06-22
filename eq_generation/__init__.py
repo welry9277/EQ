@@ -1,4 +1,4 @@
-"""EQ (Extended Query) generation package."""
+"""EQ (Extended Query) generation package for Clotho and MeCAT."""
 
 from eq_generation.data import load_audiocaps, load_clotho, load_config, load_mecat
 from eq_generation.generators import BaseEQGenerator, EQGenerator, GPTEQGenerator

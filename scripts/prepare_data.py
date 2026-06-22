@@ -2,56 +2,115 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import urllib.error
 import urllib.request
+from collections import Counter
 from pathlib import Path
 
-# Official AudioCaps caption CSVs (cdjkim/audiocaps)
-_AUDIOCAPS_BASE = "https://raw.githubusercontent.com/cdjkim/audiocaps/refs/heads/master/dataset"
-AUDIOCAPS_URLS = {
-    "train": f"{_AUDIOCAPS_BASE}/train.csv",
-    "val": f"{_AUDIOCAPS_BASE}/val.csv",
-    "test": f"{_AUDIOCAPS_BASE}/test.csv",
+CLOTHO_RECORD_URL = "https://zenodo.org/records/4783391"
+CLOTHO_CAPTION_URLS = {
+    split: f"{CLOTHO_RECORD_URL}/files/clotho_captions_{split}.csv?download=1"
+    for split in ("development", "validation", "evaluation")
 }
-CLOTHO_URL = "https://zenodo.org/records/4783391/files/clotho_captions_development.csv"
+AUDIOCAPS_TEST_URL = (
+    "https://raw.githubusercontent.com/cdjkim/audiocaps/master/dataset/test.csv"
+)
 
-def download_file(url: str, dest: Path) -> None:
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Downloading {url}\n -> to {dest} ...")
+
+def download_file(url: str, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    request = urllib.request.Request(url, headers={"User-Agent": "EQ/0.1"})
+    print(f"[INFO] Downloading {url}")
     try:
-        # User-Agent header often required to bypass basic bot blockers
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response, open(dest, 'wb') as out_file:
-            data = response.read()
-            out_file.write(data)
-        print(f"✅ Successfully downloaded: {dest.name}")
-    except urllib.error.URLError as e:
-        print(f"❌ Failed to download {dest.name}: {e}")
+        with (
+            urllib.request.urlopen(request) as response,
+            destination.open("wb") as output,
+        ):
+            output.write(response.read())
+    except urllib.error.URLError as exc:
+        raise SystemExit(f"Failed to download {url}: {exc}") from exc
+    print(f"[INFO] Wrote {destination}")
 
-def main():
-    parser = argparse.ArgumentParser(description="Download and prepare dataset metadata for EQ generation")
-    parser.add_argument("--dataset", required=True, choices=["audiocaps", "clotho", "mecat", "all"],
-                        help="Dataset to prepare (downloads to input/ directory)")
-    args = parser.parse_args()
 
-    datasets_to_process = ["audiocaps", "clotho", "mecat"] if args.dataset == "all" else [args.dataset]
-    base_dir = Path("input")
+def prepare_clotho(input_root: Path, split: str) -> None:
+    splits = CLOTHO_CAPTION_URLS if split == "all" else (split,)
+    destination_dir = input_root / "clotho"
+    for current_split in splits:
+        destination = destination_dir / f"clotho_captions_{current_split}.csv"
+        download_file(CLOTHO_CAPTION_URLS[current_split], destination)
 
-    for ds in datasets_to_process:
-        if ds == "audiocaps":
-            for split, url in AUDIOCAPS_URLS.items():
-                out_path = base_dir / "audiocaps" / f"{split}.csv"
-                download_file(url, out_path)
+    audio_dir = destination_dir / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    print(
+        "[INFO] Download the matching Clotho audio archive from "
+        f"{CLOTHO_RECORD_URL}, extract it, and place the audio files under {audio_dir}."
+    )
 
-        elif ds == "clotho":
-            out_path = base_dir / "clotho" / "clotho_captions_development.csv"
-            download_file(CLOTHO_URL, out_path)
 
-        elif ds == "mecat":
-            mecat_dir = base_dir / "mecat" / "json_files"
-            mecat_dir.mkdir(parents=True, exist_ok=True)
-            print("⚠️  MeCAT metadata is usually restricted or complex to download automatically.")
-            print(f"   Please manually place the MeCAT JSON files into: {mecat_dir}")
+def prepare_audiocaps(input_root: Path) -> None:
+    destination = input_root / "audiocaps" / "test.csv"
+    download_file(AUDIOCAPS_TEST_URL, destination)
+    with destination.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    group_counts = Counter(
+        (row.get("youtube_id", ""), row.get("start_time", "")) for row in rows
+    )
+    invalid = [key for key, count in group_counts.items() if count != 5]
+    if invalid:
+        raise SystemExit(
+            f"AudioCaps test.csv contains {len(invalid)} groups without five captions."
+        )
+    print(
+        f"[INFO] AudioCaps test.csv contains {len(group_counts)} clips and "
+        f"{len(rows)} captions; every clip has five captions."
+    )
 
-if __name__ == '__main__':
+
+def prepare_mecat(input_root: Path) -> None:
+    mecat_dir = input_root / "mecat"
+    json_dir = mecat_dir / "json_files"
+    audio_dir = mecat_dir / "flac_files"
+    json_dir.mkdir(parents=True, exist_ok=True)
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    print(f"[INFO] Place MeCAT JSON files under {json_dir}.")
+    print(f"[INFO] Place matching .flac files under {audio_dir}.")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Prepare AudioCaps, Clotho, or MeCAT inputs for EQ generation.",
+    )
+    parser.add_argument(
+        "--dataset",
+        required=True,
+        choices=["audiocaps", "clotho", "mecat", "all"],
+        help="Dataset to prepare under --input-root.",
+    )
+    parser.add_argument(
+        "--clotho-split",
+        choices=["development", "validation", "evaluation", "all"],
+        default="evaluation",
+        help="Clotho caption split to download. Default: evaluation.",
+    )
+    parser.add_argument(
+        "--input-root",
+        type=Path,
+        default=Path("input"),
+        help="Root input directory. Default: input.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    if args.dataset in {"audiocaps", "all"}:
+        prepare_audiocaps(args.input_root)
+    if args.dataset in {"clotho", "all"}:
+        prepare_clotho(args.input_root, args.clotho_split)
+    if args.dataset in {"mecat", "all"}:
+        prepare_mecat(args.input_root)
+
+
+if __name__ == "__main__":
     main()

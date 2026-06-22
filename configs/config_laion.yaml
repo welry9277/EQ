@@ -1,0 +1,38 @@
+datasets:
+  audiocaps:
+    caption_jsonl: input/hf_eq/test/audiocaps/eq_by_clip.jsonl
+    audio_dir: input/hf_eq/test/audiocaps/audio
+    hf_repo: msnowchanj/EQ
+    hf_split: test
+    hf_dataset_filter: audiocaps
+    hf_data_files:
+      - data/test-00004-of-00012.parquet
+      - data/test-00005-of-00012.parquet
+      - data/test-00006-of-00012.parquet
+      - data/test-00007-of-00012.parquet
+      - data/test-00008-of-00012.parquet
+    hf_data_file_dataset_counts: [150, 239, 239, 239, 108]
+    hf_output_dir: input/hf_eq/test/audiocaps
+    hf_cache_dir: input/hf_cache
+  clotho:
+    caption_jsonl: results/eq/clotho/eq_by_clip.jsonl
+    audio_dir: input/clotho/audio
+  mecat:
+    caption_jsonl: results/eq/mecat/eq_by_clip.jsonl
+    audio_dir: input/mecat/flac_files
+
+models:
+  - name: laion
+    type: huggingface
+    hf_model_id: laion/clap-htsat-unfused
+    enabled: true
+
+execution:
+  batch_size: 16
+  text_batch_size: 64
+  audio_batch_size: 16
+  device: auto
+
+evaluation:
+  top_k_list: [1, 5, 10]
+  model_order: [laion]

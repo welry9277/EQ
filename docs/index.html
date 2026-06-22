@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EQ — Extended Query Generation for Audio Retrieval</title>
-  <meta name="description" content="LLM-based toolkit for generating Extended Query (EQ) data for text-to-audio retrieval evaluation across AudioCaps, Clotho, and MeCAT." />
+  <meta name="description" content="LLM-based toolkit for generating Extended Query (EQ) data and evaluating text-to-audio retrieval on AudioCaps, Clotho, and MeCAT." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -614,7 +614,7 @@
       <div class="pipe-num" style="color:#58a6ff;border-color:#58a6ff;background:rgba(88,166,255,.1)">1</div>
       <div class="pipe-body">
         <h3>Prepare Captions</h3>
-        <p>Download AudioCaps / Clotho CSVs, or place MeCAT JSON files manually.
+        <p>Download AudioCaps or Clotho caption CSVs, or place MeCAT JSON files manually.
            The loader groups multiple human captions per clip and picks the middle caption as the generation anchor.</p>
       </div>
     </div>
@@ -652,7 +652,7 @@
 <section id="models">
   <div class="section-label">Supported</div>
   <h2>Datasets &amp; CLAP Models</h2>
-  <p class="section-sub">Works with three widely-used audio captioning datasets and four state-of-the-art CLAP models.</p>
+  <p class="section-sub">Works with AudioCaps, Clotho, and MeCAT plus four CLAP-family retrieval models.</p>
 
   <div class="md-grid">
     <div class="md-card">
@@ -678,10 +678,10 @@
 <hr class="divider" />
 
 <!-- QUICK START -->
-<section id="quickstart">
+  <section id="quickstart">
   <div class="section-label">Quick Start</div>
-  <h2>Get Running in Minutes</h2>
-  <p class="section-sub">Requires Python ≥ 3.9, <a href="https://docs.astral.sh/uv/" target="_blank" style="color:var(--accent)">uv</a>, and an OpenAI API key.</p>
+  <h2>Generate and Evaluate AudioCaps EQ</h2>
+  <p class="section-sub">Requires Python ≥ 3.10, <a href="https://docs.astral.sh/uv/" target="_blank" style="color:var(--accent)">uv</a>, and an OpenAI API key for generation. Evaluation downloads AudioCaps rows and audio from the Hugging Face EQ test split automatically.</p>
 
   <div class="code-tabs">
     <div class="code-tab active" onclick="switchTab('install')">Install</div>
@@ -700,38 +700,34 @@ uv sync --frozen
 
 <span class="cmt"># Set your OpenAI API key</span>
 <span class="kw">cp</span> .env.example .env
-<span class="cmt"># Edit .env → OPENAI_API_KEY=sk-...</span>
-
-<span class="cmt"># Prepare input data (downloads AudioCaps CSVs)</span>
-uv run python scripts/prepare_data.py --dataset audiocaps</pre>
+<span class="cmt"># Edit .env → OPENAI_API_KEY=sk-...</span></pre>
   </div>
 
   <div id="tab-generate" class="code-panel">
     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-    <pre><span class="cmt"># Generate all 6 EQ variants for AudioCaps test split</span>
+    <pre><span class="cmt"># Download the official AudioCaps test.csv</span>
+uv run python scripts/prepare_data.py --dataset audiocaps
+
+<span class="cmt"># Group 5 captions per clip and generate full_caption</span>
 uv run python scripts/makeeq.py \
   --dataset audiocaps \
-  --captions-csv input/audiocaps/test.csv \
-  --output-dir results/eq/audiocaps_test \
+  --captions-path input/audiocaps/test.csv \
+  --output-dir results/eq/audiocaps \
   --split test
 
-<span class="cmt"># Merge the 6 per-type files into one file per clip</span>
-uv run python scripts/merge_eq_by_clip.py \
-  --input-dir results/eq/audiocaps_test</pre>
+<span class="cmt"># Output: results/eq/audiocaps/eq_full_caption.jsonl</span></pre>
   </div>
 
   <div id="tab-evaluate" class="code-panel">
     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-    <pre><span class="cmt"># Extract embeddings for all models and merge</span>
+    <pre><span class="cmt"># Download AudioCaps rows/audio from msnowchanj/EQ test</span>
+<span class="cmt"># Then extract embeddings and compute R@1, R@5, and R@10</span>
 uv run python scripts/eval_pipeline.py \
-  --config config.yaml \
-  --dataset clotho
+  --dataset audiocaps \
+  --config configs/config_laion.yaml
 
-<span class="cmt"># Compute Recall@1/5/10 for all query pools</span>
-uv run python scripts/eval_text_to_audio_retrieval.py
-
-<span class="cmt"># Generate bar chart</span>
-uv run python scripts/eval_plot_text_to_audio_recall.py</pre>
+<span class="cmt"># Quick 100-clip check: add --limit 100</span>
+<span class="cmt"># Metrics: results/retrieval/audiocaps/text_to_audio_recall.csv</span></pre>
   </div>
 </section>
 
@@ -745,14 +741,15 @@ uv run python scripts/eval_plot_text_to_audio_recall.py</pre>
 
   <div class="schema-box">
     <pre>{
-  <span class="key">"audio_id"</span>:           <span class="str">"4LLWZCuGfgk_26"</span>,
-  <span class="key">"dataset"</span>:            <span class="str">"audiocaps"</span>,
-  <span class="key">"dataset_slug"</span>:       <span class="str">"audiocaps_test"</span>,
+  <span class="key">"audio_id"</span>:           <span class="str">"Santa Motor"</span>,
+  <span class="key">"dataset"</span>:            <span class="str">"clotho"</span>,
+  <span class="key">"dataset_slug"</span>:       <span class="str">"clotho_evaluation"</span>,
   <span class="key">"query_type"</span>:         <span class="str">"statement"</span>,
   <span class="key">"generated_query"</span>:    <span class="str">"Water is running and gurgling with a splashing sound."</span>,
   <span class="key">"original_captions"</span>:  [<span class="str">"Water is running, gurgling and splashing"</span>],
   <span class="key">"metadata"</span>: {
-    <span class="key">"split"</span>:               <span class="str">"test"</span>,
+    <span class="key">"split"</span>:               <span class="str">"evaluation"</span>,
+    <span class="key">"file_name"</span>:           <span class="str">"Santa Motor.wav"</span>,
     <span class="key">"eq_reference"</span>:        <span class="str">"middle_caption"</span>,
     <span class="key">"middle_caption_index"</span>: <span class="num">2</span>,
     <span class="key">"full_caption_count"</span>:  <span class="num">5</span>

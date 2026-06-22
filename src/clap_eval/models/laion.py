@@ -1,8 +1,9 @@
-import torch
 import numpy as np
+import torch
 from transformers import ClapModel, ClapProcessor
-import librosa
+
 from .base import BaseClapModel
+
 
 class LaionClapModel(BaseClapModel):
     def _load_model(self):

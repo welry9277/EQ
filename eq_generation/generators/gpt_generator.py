@@ -40,7 +40,10 @@ class GPTEQGenerator(BaseEQGenerator):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": get_system_prompt(query_type, backend="gpt")},
+                {
+                    "role": "system",
+                    "content": get_system_prompt(query_type, backend="gpt"),
+                },
                 {"role": "user", "content": prompt},
             ],
             max_completion_tokens=self.max_tokens,

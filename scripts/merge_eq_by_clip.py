@@ -4,12 +4,14 @@
 Reads eq_*.jsonl in a directory (compact or pretty-printed blocks), joins on audio_id,
 and writes JSONL with original_captions + source_caption + all generated_queries together.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 # Process full_caption first so merged original_captions is the full set (other types store middle-only).
 QUERY_TYPE_FILES = [
@@ -73,8 +75,8 @@ def main() -> None:
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=Path("results/eq/test_sample5"),
-        help="Directory containing eq_*.jsonl (default: results/eq/test_sample5)",
+        required=True,
+        help="Directory containing the six eq_*.jsonl files.",
     )
     parser.add_argument(
         "--output",
@@ -83,12 +85,12 @@ def main() -> None:
         help="Output JSONL path (default: <input-dir>/eq_by_clip.jsonl)",
     )
     parser.add_argument(
-        "--compact",
+        "--pretty",
         action="store_true",
-        help="Strict JSONL: one minified JSON object per line (default: pretty blocks + blank lines).",
+        help="Write indented JSON blocks instead of strict one-object-per-line JSONL.",
     )
     args = parser.parse_args()
-    pretty = not args.compact
+    pretty = args.pretty
     out_path = args.output or (args.input_dir / "eq_by_clip.jsonl")
 
     by_audio: dict[str, dict[str, Any]] = {}
@@ -102,6 +104,10 @@ def main() -> None:
             if not aid:
                 continue
             gq = str(rec.get("generated_query", "")).strip()
+            if not gq:
+                raise SystemExit(
+                    f"Empty generated_query for audio_id={aid!r} in {path}"
+                )
             if aid not in by_audio:
                 by_audio[aid] = {
                     "audio_id": aid,

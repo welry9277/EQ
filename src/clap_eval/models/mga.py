@@ -48,7 +48,7 @@ class MGAClapModel(BaseClapModel):
         if not ckpt_path.is_file():
             raise FileNotFoundError(f"MGA checkpoint not found: {ckpt_path}")
 
-        with open(settings_path, "r", encoding="utf-8") as handle:
+        with open(settings_path, encoding="utf-8") as handle:
             mga_cfg = yaml.safe_load(handle)
         mga_cfg = copy.deepcopy(mga_cfg)
         mga_cfg["device"] = str(self.device)

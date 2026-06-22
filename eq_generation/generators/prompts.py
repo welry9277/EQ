@@ -197,7 +197,6 @@ SYSTEM_PROMPTS = {
 4. Maintain the texture and action of the sound by combining the sound's subject with a present participle (-ing) instead of a regular verb.
 
 5. Avoid using 'while' or 'and' to connect background sounds/environments. Instead, compress and connect them using prepositions like 'with', 'on', 'in', or adjectives like 'distant'.""",
-
     QueryType.STATEMENT: """You are an expert at objectively describing audio scenarios. Analyze the given caption and write a full, descriptive Statement according to the following rules.
 
 [Constraints]
@@ -209,7 +208,6 @@ SYSTEM_PROMPTS = {
 3. When describing background sounds or simultaneous events, do not compress them. Use conjunctions like 'while' and 'and' to naturally connect two clauses.
 
 4. Since this is a complete sentence, it must end with a period (.).""",
-
     QueryType.FULL_CAPTION: """You are an expert at combining fragmented audio captions into one vivid, unified scene. Analyze multiple captions and write a Full-caption according to the following rules.
 
 [Constraints]
@@ -220,16 +218,17 @@ SYSTEM_PROMPTS = {
 
 3. Do not just list fragmented noun phrases. Reconstruct them into a complete, vivid sentence (e.g., 'is barking', 'is falling', 'is brewing') as if a video is playing right before the eyes.
 
-4. Do not stiffly glue the collected sound information (main sound, background, texture) together. Weave them into a fluent, single-breath sentence using connectors like 'accompanied by', 'while', 'during', or ', producing'."""
+4. Do not stiffly glue the collected sound information (main sound, background, texture) together. Weave them into a fluent, single-breath sentence using connectors like 'accompanied by', 'while', 'during', or ', producing'.""",
 }
+
 
 def format_prompt(query_type: QueryType, caption: str) -> str:
     # 안전한 따옴표 처리를 위해 json.dumps 사용
     safe_caption = json.dumps(caption)
-    
+
     if query_type == QueryType.FULL_CAPTION:
         return FULL_CAPTION_PROMPT_TEMPLATE.format(caption=safe_caption)
-    
+
     # 퓨샷 템플릿에 있는 {{caption}} 자리에 safe_caption을 쏙 집어넣음
     template = SINGLE_REFERENCE_FEWSHOT[query_type]
     return template.format(caption=safe_caption)
@@ -251,7 +250,6 @@ def get_system_prompt(query_type: QueryType, backend: str = "gpt") -> str:
 3. Slightly polish any overly mechanical expressions caused by the question format into natural wording (e.g., 'producing' -> 'brewing').
 4. Since this is a complete question, it must end with a question mark (?).
 """
-    
 
     elif query_type == QueryType.COMMAND:
         verb = random.choice(COMMAND_VERBS)
@@ -267,7 +265,6 @@ def get_system_prompt(query_type: QueryType, backend: str = "gpt") -> str:
 4. Do not overly compress or excessively describe the original text. Group the description into one large noun phrase and provide it as the direct object of the chosen verb.
 5. This is a complete command sentence, so it must end with a period (.).
 """
-    
 
     elif query_type == QueryType.INDIRECT:
         hedge = random.choice(INDIRECT_HEDGES)
