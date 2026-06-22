@@ -28,7 +28,7 @@ dependencies = [
     "setuptools<70.0.0",
     "timm",
     "torch>=2.6.0",
-    "torchaudio>=2.6.0",
+    "torchaudio>=2.11.0",
     "torchlibrosa",
     "tqdm",
     "transformers",
