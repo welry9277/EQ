@@ -27,7 +27,7 @@ dependencies = [
     "sentence-transformers",
     "setuptools<70.0.0",
     "timm",
-    "torch>=2.6.0",
+    "torch>=2.12.1",
     "torchaudio>=2.6.0",
     "torchlibrosa",
     "tqdm",
