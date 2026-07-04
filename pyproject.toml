@@ -25,7 +25,7 @@ dependencies = [
     "seaborn",
     "sed-scores-eval==0.0.0",
     "sentence-transformers",
-    "setuptools<70.0.0",
+    "setuptools<84.0.0",
     "timm",
     "torch>=2.6.0",
     "torchaudio>=2.6.0",
